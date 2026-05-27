@@ -38,13 +38,19 @@ Hızlı kontrol:
 curl http://127.0.0.1:8000/health
 ```
 
-## Test & lint
+## Kalite & güvenlik (CI ile aynı)
 
 ```powershell
 cd services/api
-uv run pytest -q
-uv run ruff check .
+uv run ruff check .              # lint
+uv run ruff format --check .     # format
+uv run mypy                      # tip kontrolü
+uv run pytest -q --cov-fail-under=90   # unit+smoke+coverage (≥%90)
+uv run bandit -c pyproject.toml -r app # SAST
+uv run pip-audit                 # bağımlılık zafiyeti
 ```
+
+CI/CD: [`.github/workflows/cicd.yml`](.github/workflows/cicd.yml) — lint+type, test+coverage, security (bandit/pip-audit/gitleaks), Docker build. Push/PR `main`'de çalışır.
 
 ## Notlar
 

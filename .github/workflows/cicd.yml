@@ -1,0 +1,84 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: services/api
+
+jobs:
+  lint-type:
+    name: Lint & type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format check
+        run: uv run ruff format --check .
+      - name: Mypy
+        run: uv run mypy
+
+  test:
+    name: Unit + smoke + coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Alembic migration smoke test
+        run: uv run alembic upgrade head
+      - name: Pytest (coverage gate 90%)
+        run: uv run pytest -q --cov-fail-under=90
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: services/api/coverage.xml
+          if-no-files-found: ignore
+
+  security:
+    name: Security (bandit, pip-audit, gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # gitleaks tüm geçmişi tarar
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Bandit (SAST)
+        run: uv run bandit -c pyproject.toml -r app
+      - name: pip-audit (bağımlılık zafiyeti)
+        run: uv run pip-audit
+      - name: Gitleaks (sır taraması)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-build:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    needs: [lint-type, test, security]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image (push yok — CD ileride)
+        run: docker build -t fitness-api:ci .
+
+  # CD (deploy) ileride: docker-build başarılıysa GHCR'a push + hedef ortama dağıtım.
+  # Şimdilik tek kullanıcı, deploy hedefi yok (Faz 5).

@@ -28,7 +28,11 @@ class UsdaAdapter:
 
     async def search(self, query: str, page_size: int = 5) -> list[FoodHit]:
         url = f"{self._base}/foods/search"
-        params = {"api_key": self._key, "query": query, "pageSize": page_size}
+        params: dict[str, str | int] = {
+            "api_key": self._key,
+            "query": query,
+            "pageSize": page_size,
+        }
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(url, params=params)
             resp.raise_for_status()
