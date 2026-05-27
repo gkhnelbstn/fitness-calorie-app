@@ -1,4 +1,4 @@
-"""Yemek kaydı şemaları (Faz 0 stub; Faz 1'de doğal dil ayrıştırma bağlanır)."""
+"""Yemek kaydı şemaları."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ class MealItem(BaseModel):
     raw_name: str = Field(..., examples=["kuru fasulye"])
     quantity: float | None = Field(default=None, examples=[1])
     unit: str | None = Field(default=None, examples=["kase"])
+    canonical_id: int | None = None
     kcal: float | None = None
     protein_g: float | None = None
     carb_g: float | None = None
