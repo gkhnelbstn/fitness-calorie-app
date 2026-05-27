@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app import config
 from app.db import Base, get_session
 from app.main import app
-from app.seeds import seed_basic
+from app.seeds import seed_all
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -49,7 +49,7 @@ async def session(maker):
 
 @pytest_asyncio.fixture
 async def seeded_session(session):
-    await seed_basic(session)
+    await seed_all(session)
     return session
 
 
@@ -60,7 +60,7 @@ async def client(maker):
             yield s
 
     async with maker() as s:
-        await seed_basic(s)
+        await seed_all(s)
 
     app.dependency_overrides[get_session] = _override
     transport = ASGITransport(app=app)

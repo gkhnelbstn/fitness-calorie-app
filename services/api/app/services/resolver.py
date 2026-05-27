@@ -6,7 +6,27 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import IngredientAliasTr, IngredientCanonical
-from .text import normalize_tr
+from .text import normalize_tr, slugify_tr
+
+
+async def get_or_create_canonical(session: AsyncSession, name: str) -> IngredientCanonical:
+    """Ada göre canonical getir; yoksa oluştur (+ normalize alias).
+
+    Tarif seed ve blacklist için: kullanıcı/bilinmeyen malzeme de canonical kazanır.
+    """
+    existing = await resolve_canonical(session, name)
+    if existing is not None:
+        return existing
+    canon = IngredientCanonical(slug=slugify_tr(name), name_tr=name)
+    session.add(canon)
+    await session.flush()
+    alias = normalize_tr(name)
+    has_alias = (
+        await session.execute(select(IngredientAliasTr.id).where(IngredientAliasTr.alias == alias))
+    ).first()
+    if has_alias is None:
+        session.add(IngredientAliasTr(canonical_id=canon.id, alias=alias))
+    return canon
 
 
 async def resolve_canonical(session: AsyncSession, name: str) -> IngredientCanonical | None:
