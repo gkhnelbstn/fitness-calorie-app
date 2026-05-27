@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project local
+services/api/dev.db
+*.sqlite3
+.idea/
+.claude/
+
+# Test/quality artefacts
+coverage.xml
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
