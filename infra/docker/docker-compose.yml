@@ -1,0 +1,25 @@
+# Geliştirme ortamı. MVP'de SQLite yeterli; PostgreSQL bölümü ileride açılır.
+services:
+  api:
+    build:
+      context: ../../services/api
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../../services/api/.env
+    volumes:
+      - ../../services/api:/app
+
+  # Faz 1+ için (şimdilik kapalı):
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: fitness
+  #     POSTGRES_PASSWORD: fitness
+  #     POSTGRES_DB: fitness
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+# volumes:
+#   pgdata:
