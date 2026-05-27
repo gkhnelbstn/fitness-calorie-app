@@ -18,8 +18,13 @@ from .models import (
     IngredientAliasTr,
     IngredientCanonical,
     NutritionProfile,
+    Recipe,
+    RecipeIngredient,
+    RecipeStepTr,
+    RecipeTag,
     SourceAttribution,
 )
+from .services.resolver import get_or_create_canonical
 from .services.text import normalize_tr
 
 # (slug, ad, kategori, aliasler, per_100g: kcal/protein/carb/fat)
@@ -143,12 +148,146 @@ async def seed_basic(session: AsyncSession) -> int:
     return added
 
 
+# Tarif: (slug, başlık, porsiyon, bölge, malzemeler[(ad,miktar,birim,optional)], adımlar, etiketler)
+RECIPES: list[dict] = [
+    {
+        "slug": "mercimek-corbasi",
+        "title": "Mercimek Çorbası",
+        "servings": 4,
+        "region": "genel",
+        "ingredients": [
+            ("kırmızı mercimek", 1, "su bardağı", False),
+            ("soğan", 1, "adet", True),
+            ("havuç", 1, "adet", True),
+            ("un", 1, "yemek kaşığı", True),
+            ("tuz", None, None, True),
+        ],
+        "steps": ["Sebzeleri doğra.", "Mercimek ve suyla kaynat.", "Blenderdan geçir, baharatla."],
+        "tags": ["çorba", "vejetaryen"],
+    },
+    {
+        "slug": "menemen",
+        "title": "Menemen",
+        "servings": 2,
+        "region": "genel",
+        "ingredients": [
+            ("yumurta", 3, "adet", False),
+            ("domates", 2, "adet", False),
+            ("yeşil biber", 2, "adet", True),
+            ("soğan", 1, "adet", True),
+            ("tereyağı", 1, "yemek kaşığı", True),
+        ],
+        "steps": ["Biber ve domatesi kavur.", "Yumurtayı kır, karıştır."],
+        "tags": ["kahvaltı"],
+    },
+    {
+        "slug": "cacik",
+        "title": "Cacık",
+        "servings": 4,
+        "region": "genel",
+        "ingredients": [
+            ("yoğurt", 2, "su bardağı", False),
+            ("salatalık", 1, "adet", False),
+            ("sarımsak", 1, "diş", True),
+            ("nane", None, None, True),
+        ],
+        "steps": ["Salatalığı rendele.", "Yoğurt, su ve sarımsakla karıştır."],
+        "tags": ["meze", "vejetaryen"],
+    },
+    {
+        "slug": "kuru-fasulye-yemegi",
+        "title": "Kuru Fasulye Yemeği",
+        "servings": 4,
+        "region": "genel",
+        "ingredients": [
+            ("kuru fasulye", 2, "su bardağı", False),
+            ("soğan", 1, "adet", True),
+            ("domates salçası", 1, "yemek kaşığı", True),
+            ("zeytinyağı", 2, "yemek kaşığı", True),
+        ],
+        "steps": ["Fasulyeyi haşla.", "Soğan ve salçayla pişir."],
+        "tags": ["ana yemek"],
+    },
+    {
+        "slug": "pirinc-pilavi-tarif",
+        "title": "Pirinç Pilavı",
+        "servings": 4,
+        "region": "genel",
+        "ingredients": [
+            ("pirinç", 1, "su bardağı", False),
+            ("tereyağı", 1, "yemek kaşığı", True),
+            ("şehriye", 2, "yemek kaşığı", True),
+            ("tuz", None, None, True),
+        ],
+        "steps": ["Şehriyeyi kavur.", "Pirinç ve suyla pişir."],
+        "tags": ["garnitür"],
+    },
+    {
+        "slug": "haslanmis-yumurta",
+        "title": "Haşlanmış Yumurta",
+        "servings": 1,
+        "region": "genel",
+        "ingredients": [
+            ("yumurta", 2, "adet", False),
+            ("tuz", None, None, True),
+        ],
+        "steps": ["Yumurtayı 8-10 dk haşla."],
+        "tags": ["kahvaltı", "protein"],
+    },
+]
+
+
+async def seed_recipes(session: AsyncSession) -> int:
+    """Çekirdek tarifleri ekler (idempotent). Eklenen tarif sayısını döner."""
+    added = 0
+    for row in RECIPES:
+        exists = (
+            await session.execute(select(Recipe).where(Recipe.slug == row["slug"]))
+        ).scalar_one_or_none()
+        if exists is not None:
+            continue
+        recipe = Recipe(
+            slug=row["slug"],
+            title_tr=row["title"],
+            servings=row["servings"],
+            region=row["region"],
+            is_adaptable=True,
+        )
+        session.add(recipe)
+        await session.flush()
+        for name, qty, unit, optional in row["ingredients"]:
+            canon = await get_or_create_canonical(session, name)
+            session.add(
+                RecipeIngredient(
+                    recipe_id=recipe.id,
+                    canonical_id=canon.id,
+                    raw_name=name,
+                    quantity=qty,
+                    unit=unit,
+                    optional=optional,
+                )
+            )
+        for i, text in enumerate(row["steps"], start=1):
+            session.add(RecipeStepTr(recipe_id=recipe.id, step_no=i, text_tr=text))
+        for tag in row["tags"]:
+            session.add(RecipeTag(recipe_id=recipe.id, tag=tag))
+        added += 1
+    await session.commit()
+    return added
+
+
+async def seed_all(session: AsyncSession) -> tuple[int, int]:
+    ingredients = await seed_basic(session)
+    recipes = await seed_recipes(session)
+    return ingredients, recipes
+
+
 async def _run() -> None:
     from .db import SessionLocal
 
     async with SessionLocal() as session:
-        added = await seed_basic(session)
-        print(f"Seed tamam. Yeni canonical: {added}")
+        ing, rec = await seed_all(session)
+        print(f"Seed tamam. Yeni canonical: {ing}, yeni tarif: {rec}")
 
 
 if __name__ == "__main__":
