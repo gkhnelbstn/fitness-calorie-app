@@ -10,14 +10,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..adapters.openfoodfacts import OpenFoodFactsAdapter
 from ..db import get_session
-from ..models import MealLog, MealLogItem
-from ..schemas.meal import MealCreate, MealItem, MealRead
+from ..models import FoodProduct, MealLog, MealLogItem, NutritionProfile
+from ..schemas.meal import BarcodeMealCreate, MealCreate, MealItem, MealRead
 from ..security import require_token
 from ..services.extract import extract_items
 from ..services.meal_parser import ParsedItem
 from ..services.nutrition import resolve_nutrition
-from ..services.resolver import resolve_canonical
+from ..services.resolver import get_or_create_canonical, resolve_canonical
+from ..services.sources import get_or_create_source
 from ..services.units import resolve_grams
 from ..services.user import get_or_create_default_user
 
@@ -118,6 +120,102 @@ async def create_meal(
         raw_text=log.raw_text,
         total_kcal=total,
         items=[_to_schema_item(it) for it in items],
+    )
+
+
+def _scale(value: float | None, grams: float) -> float | None:
+    if value is None:
+        return None
+    return round(value * grams / 100.0, 1)
+
+
+@router.post("/by-barcode", response_model=MealRead, status_code=status.HTTP_201_CREATED)
+async def create_meal_by_barcode(
+    payload: BarcodeMealCreate, session: AsyncSession = Depends(get_session)
+) -> MealRead:
+    """Barkodu Open Food Facts'ten çek, ürün/canonical/besin profilini upsert et,
+    miktar ile makro hesapla ve yemek kaydı oluştur."""
+    hit = await OpenFoodFactsAdapter().by_barcode(payload.barcode)
+    if hit is None:
+        raise HTTPException(status_code=404, detail="Barkod bulunamadı.")
+
+    user = await get_or_create_default_user(session)
+    src = await get_or_create_source(
+        session,
+        name="Open Food Facts",
+        url="https://world.openfoodfacts.org",
+        license="ODbL",
+        license_mode="atıf",
+    )
+
+    # FoodProduct upsert
+    product = (
+        await session.execute(select(FoodProduct).where(FoodProduct.barcode == payload.barcode))
+    ).scalar_one_or_none()
+    canon = await get_or_create_canonical(session, hit.name)
+    if product is None:
+        product = FoodProduct(
+            barcode=payload.barcode,
+            name=hit.name,
+            canonical_id=canon.id,
+            source_id=src.id,
+            raw_payload=hit.raw,
+        )
+        session.add(product)
+    elif product.canonical_id is None:
+        product.canonical_id = canon.id
+
+    # NutritionProfile upsert
+    has_np = (
+        await session.execute(
+            select(NutritionProfile.id).where(NutritionProfile.canonical_id == canon.id)
+        )
+    ).first()
+    if has_np is None and hit.kcal_per_100g is not None:
+        session.add(
+            NutritionProfile(
+                canonical_id=canon.id,
+                source_id=src.id,
+                basis="per_100g",
+                kcal=hit.kcal_per_100g,
+                protein_g=hit.protein_g,
+                carb_g=hit.carb_g,
+                fat_g=hit.fat_g,
+                raw_payload=hit.raw,
+            )
+        )
+
+    grams = payload.grams
+    log = MealLog(
+        user_id=user.id,
+        meal_type=payload.meal_type,
+        raw_text=f"[barkod {payload.barcode}] {hit.name}",
+    )
+    session.add(log)
+    await session.flush()
+    item = MealLogItem(
+        meal_log_id=log.id,
+        canonical_id=canon.id,
+        raw_name=hit.name,
+        quantity=grams,
+        unit="gram",
+        kcal=_scale(hit.kcal_per_100g, grams),
+        protein_g=_scale(hit.protein_g, grams),
+        carb_g=_scale(hit.carb_g, grams),
+        fat_g=_scale(hit.fat_g, grams),
+        confidence=1.0,
+    )
+    session.add(item)
+    log.total_kcal = item.kcal
+    await session.commit()
+
+    return MealRead(
+        id=log.id,
+        eaten_at=log.eaten_at,
+        meal_type=log.meal_type,
+        raw_text=log.raw_text,
+        total_kcal=log.total_kcal,
+        items=[_to_schema_item(item)],
     )
 
 
