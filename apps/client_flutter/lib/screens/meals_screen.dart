@@ -24,10 +24,14 @@ class _MealsScreenState extends State<MealsScreen> {
     _reload();
   }
 
-  void _reload() {
-    setState(() {
-      _meals = widget.api.listMeals(date: _isoDate);
-    });
+  Future<void> _reload() async {
+    final f = widget.api.listMeals(date: _isoDate);
+    setState(() => _meals = f);
+    try {
+      await f;
+    } catch (_) {
+      // hata FutureBuilder'da gösterilir
+    }
   }
 
   Future<void> _pickDate() async {
@@ -252,7 +256,7 @@ class _MealsScreenState extends State<MealsScreen> {
                 );
               }
               return RefreshIndicator(
-                onRefresh: () async => _reload(),
+                onRefresh: _reload,
                 child: ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 96),
                   itemCount: data.length,

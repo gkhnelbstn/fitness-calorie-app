@@ -24,13 +24,17 @@ class _HomeScreenState extends State<HomeScreen> {
     _reload();
   }
 
-  void _reload() {
-    setState(() {
-      _data = Future.wait([
-        widget.api.getSummary(date: _isoDate),
-        widget.api.getRecommendation(date: _isoDate),
-      ]);
-    });
+  Future<void> _reload() async {
+    final f = Future.wait([
+      widget.api.getSummary(date: _isoDate),
+      widget.api.getRecommendation(date: _isoDate),
+    ]);
+    setState(() => _data = f);
+    try {
+      await f;
+    } catch (_) {
+      // hata FutureBuilder'da gösterilir
+    }
   }
 
   Future<void> _pickDate() async {
@@ -162,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: () async => _reload(),
+      onRefresh: _reload,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
         children: [

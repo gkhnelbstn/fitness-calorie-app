@@ -91,7 +91,7 @@ class KcalRing extends StatelessWidget {
             width: 132,
             height: 132,
             child: CircularProgressIndicator(
-              value: target != null ? pct : null,
+              value: target != null ? pct : 0.0,
               strokeWidth: 11,
               backgroundColor: t.colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation(
@@ -144,7 +144,7 @@ class MacroBar extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
-              value: pct,
+              value: pct ?? 0.0,
               minHeight: 8,
               backgroundColor: color.withValues(alpha: 0.15),
               valueColor: AlwaysStoppedAnimation(color),

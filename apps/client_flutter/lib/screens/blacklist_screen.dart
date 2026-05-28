@@ -20,10 +20,14 @@ class _BlacklistScreenState extends State<BlacklistScreen> {
     _reload();
   }
 
-  void _reload() {
-    setState(() {
-      _items = widget.api.listBlacklist();
-    });
+  Future<void> _reload() async {
+    final f = widget.api.listBlacklist();
+    setState(() => _items = f);
+    try {
+      await f;
+    } catch (_) {
+      // hata FutureBuilder'da gösterilir
+    }
   }
 
   Future<void> _add() async {
@@ -67,7 +71,7 @@ class _BlacklistScreenState extends State<BlacklistScreen> {
             return const EmptyState(icon: Icons.block, message: 'Kara liste boş.\n+ ile malzeme ekle.');
           }
           return RefreshIndicator(
-            onRefresh: () async => _reload(),
+            onRefresh: _reload,
             child: ListView.separated(
               itemCount: data.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
