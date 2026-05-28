@@ -27,6 +27,13 @@ def _disable_real_llm():
     config.get_settings.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def _reset_settings_cache():
+    """Her testten sonra ayar önbelleğini temizle (env override izolasyonu)."""
+    yield
+    config.get_settings.cache_clear()
+
+
 @pytest_asyncio.fixture
 async def engine(tmp_path):
     eng = create_async_engine(f"sqlite+aiosqlite:///{tmp_path.as_posix()}/t.db")

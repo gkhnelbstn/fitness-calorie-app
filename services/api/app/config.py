@@ -46,6 +46,17 @@ class Settings(BaseSettings):
     # Yüklenen yemek fotoğrafları için dizin (gitignore'da).
     upload_dir: str = "./data/photos"
 
+    # TheMealDB: ücretsiz, test key "1" (geliştirme). Tarif hacmi (İngilizce).
+    themealdb_base_url: str = "https://www.themealdb.com/api/json/v1/1"
+
+    # Spoonacular: free 150 istek/gün. Anahtar gerekir; boşsa import endpoint 400 döner.
+    spoonacular_api_key: str = ""
+    spoonacular_base_url: str = "https://api.spoonacular.com"
+
+    @property
+    def spoonacular_enabled(self) -> bool:
+        return bool(self.spoonacular_api_key.strip())
+
     @property
     def llm_enabled(self) -> bool:
         return bool(self.nvidia_api_key.strip())

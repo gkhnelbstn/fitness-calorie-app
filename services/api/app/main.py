@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import __version__
 from .config import get_settings
 from .routers import (
+    admin,
     blacklist,
     health,
     meal_plans,
@@ -43,6 +44,7 @@ app.include_router(blacklist.router)
 app.include_router(profile.router)
 app.include_router(recommendations.router)
 app.include_router(meal_plans.router)
+app.include_router(admin.router)
 
 
 @app.get("/", tags=["root"])
