@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     # Tek kullanıcı için basit API token (Faz 0). Public'e geçişte OAuth2/JWT.
     api_token: str = "dev-local-token"
 
+    # Yüklenen yemek fotoğrafları için dizin (gitignore'da).
+    upload_dir: str = "./data/photos"
+
     @property
     def llm_enabled(self) -> bool:
         return bool(self.nvidia_api_key.strip())

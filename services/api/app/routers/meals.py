@@ -6,51 +6,27 @@ GET:  tarihe göre kullanıcının yemek kayıtları.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import uuid
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..adapters.openfoodfacts import OpenFoodFactsAdapter
+from ..config import get_settings
 from ..db import get_session
 from ..models import FoodProduct, MealLog, MealLogItem, NutritionProfile
 from ..schemas.meal import BarcodeMealCreate, MealCreate, MealItem, MealRead
 from ..security import require_token
 from ..services.extract import extract_items
+from ..services.meal_items import build_meal_log_item as _build_item
 from ..services.meal_parser import ParsedItem
-from ..services.nutrition import resolve_nutrition
 from ..services.resolver import get_or_create_canonical, resolve_canonical
 from ..services.sources import get_or_create_source
-from ..services.units import resolve_grams
 from ..services.user import get_or_create_default_user
 
 router = APIRouter(prefix="/api/meals", tags=["meals"], dependencies=[Depends(require_token)])
-
-
-async def _build_item(session: AsyncSession, p: ParsedItem) -> MealLogItem:
-    canon = await resolve_canonical(session, p.name)
-    grams = resolve_grams(p.quantity, p.unit)
-    macros = None
-    if canon is not None and grams is not None:
-        macros = await resolve_nutrition(session, canon.id, grams)
-
-    if canon is not None and macros is not None:
-        confidence = 1.0
-    elif canon is not None:
-        confidence = 0.5
-    else:
-        confidence = 0.2
-
-    return MealLogItem(
-        canonical_id=canon.id if canon else None,
-        raw_name=p.name,
-        quantity=p.quantity,
-        unit=p.unit,
-        kcal=macros.kcal if macros else None,
-        protein_g=macros.protein_g if macros else None,
-        carb_g=macros.carb_g if macros else None,
-        fat_g=macros.fat_g if macros else None,
-        confidence=confidence,
-    )
 
 
 def _to_schema_item(it: MealLogItem) -> MealItem:
@@ -120,6 +96,58 @@ async def create_meal(
         raw_text=log.raw_text,
         total_kcal=total,
         items=[_to_schema_item(it) for it in items],
+        photo_path=log.photo_path,
+    )
+
+
+@router.post("/photo", response_model=MealRead, status_code=status.HTTP_201_CREATED)
+async def create_meal_with_photo(
+    photo: UploadFile = File(...),
+    raw_text: str | None = Form(default=None),
+    meal_type: str | None = Form(default=None),
+    session: AsyncSession = Depends(get_session),
+) -> MealRead:
+    """Yemek fotoğrafı yükle. AI/LLM tanıma YOK — kullanıcı manuel raw_text/items'la
+    düzeltir. Dosya `upload_dir`'e UUID adıyla saklanır; meal_log.photo_path bağlanır.
+    raw_text varsa Faz 1 akışıyla items çıkarılır."""
+    settings = get_settings()
+    upload_dir = Path(settings.upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    suffix = Path(photo.filename or "").suffix.lower() or ".bin"
+    fname = f"{uuid.uuid4().hex}{suffix}"
+    target = upload_dir / fname
+    content = await photo.read()
+    target.write_bytes(content)
+
+    user = await get_or_create_default_user(session)
+    log = MealLog(
+        user_id=user.id,
+        meal_type=meal_type,
+        raw_text=raw_text,
+        photo_path=str(target),
+    )
+    session.add(log)
+    await session.flush()
+
+    items: list[MealLogItem] = []
+    if raw_text:
+        for p in await extract_items(raw_text):
+            items.append(await _build_item(session, p))
+    for item in items:
+        item.meal_log_id = log.id
+        session.add(item)
+    total = sum((it.kcal or 0) for it in items) or None
+    log.total_kcal = total
+    await session.commit()
+
+    return MealRead(
+        id=log.id,
+        eaten_at=log.eaten_at,
+        meal_type=log.meal_type,
+        raw_text=log.raw_text,
+        total_kcal=total,
+        items=[_to_schema_item(it) for it in items],
+        photo_path=log.photo_path,
     )
 
 
@@ -245,6 +273,7 @@ async def list_meals(
                 raw_text=log.raw_text,
                 total_kcal=log.total_kcal,
                 items=[_to_schema_item(it) for it in rows],
+                photo_path=log.photo_path,
             )
         )
     return out

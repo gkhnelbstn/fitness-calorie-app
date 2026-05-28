@@ -45,3 +45,4 @@ class MealRead(BaseModel):
     raw_text: str | None
     total_kcal: float | None
     items: list[MealItem]
+    photo_path: str | None = None

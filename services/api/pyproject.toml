@@ -12,6 +12,7 @@ dependencies = [
     "aiosqlite>=0.20",
     "alembic>=1.14",
     "httpx>=0.28",
+    "python-multipart>=0.0.29",
 ]
 
 [dependency-groups]
