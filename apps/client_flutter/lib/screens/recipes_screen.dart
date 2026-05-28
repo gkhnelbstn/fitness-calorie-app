@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../widgets/common.dart';
 
 class RecipesScreen extends StatefulWidget {
   final ApiClient api;
@@ -122,13 +123,19 @@ class _RecipesScreenState extends State<RecipesScreen> {
         child: FutureBuilder<List<dynamic>>(
           future: _result,
           builder: (c, s) {
-            if (_result == null) return const Center(child: Text('Yukarıdan "Çalıştır" basın.'));
-            if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-            if (s.hasError) return Center(child: Text('Hata: ${s.error}'));
+            if (_result == null) {
+              return const EmptyState(icon: Icons.menu_book_outlined, message: 'Arama yap veya "Çalıştır" bas.');
+            }
+            if (s.connectionState != ConnectionState.done) return const LoadingView();
+            if (s.hasError) {
+              return ListView(padding: const EdgeInsets.all(12), children: [ErrorBanner(s.error)]);
+            }
             final data = s.data ?? [];
-            if (data.isEmpty) return const Center(child: Text('Sonuç yok.'));
+            if (data.isEmpty) {
+              return const EmptyState(icon: Icons.search_off, message: 'Sonuç yok.');
+            }
             return ListView(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
               children: [for (final r in data) _recipeCard(r as Map)],
             );
           },

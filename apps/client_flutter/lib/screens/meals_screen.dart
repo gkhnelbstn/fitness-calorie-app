@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api.dart';
+import '../widgets/common.dart';
 
 class MealsScreen extends StatefulWidget {
   final ApiClient api;
@@ -23,10 +24,14 @@ class _MealsScreenState extends State<MealsScreen> {
     _reload();
   }
 
-  void _reload() {
-    setState(() {
-      _meals = widget.api.listMeals(date: _isoDate);
-    });
+  Future<void> _reload() async {
+    final f = widget.api.listMeals(date: _isoDate);
+    setState(() => _meals = f);
+    try {
+      await f;
+    } catch (_) {
+      // hata FutureBuilder'da gösterilir
+    }
   }
 
   Future<void> _pickDate() async {
@@ -160,6 +165,70 @@ class _MealsScreenState extends State<MealsScreen> {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  static const _mealLabels = {
+    'kahvalti': 'Kahvaltı', 'ogle': 'Öğle', 'aksam': 'Akşam',
+    'atistirma': 'Atıştırma', 'ara_ogun': 'Ara öğün',
+  };
+
+  Widget _mealCard(Map m) {
+    final t = Theme.of(context);
+    final items = (m['items'] as List? ?? []);
+    final names = items.map((it) => it['raw_name']).where((x) => x != null).join(', ');
+    final title = (m['raw_text'] ?? '').toString().trim().isNotEmpty
+        ? m['raw_text'].toString()
+        : (names.isEmpty ? '(boş kayıt)' : names);
+    final mealType = m['meal_type'] != null ? (_mealLabels[m['meal_type']] ?? m['meal_type']) : null;
+    final kcal = m['total_kcal'];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              backgroundColor: t.colorScheme.primaryContainer,
+              child: Icon(
+                (m['photo_path'] != null) ? Icons.photo_camera : Icons.restaurant,
+                color: t.colorScheme.onPrimaryContainer, size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: t.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Wrap(spacing: 6, runSpacing: 4, children: [
+                    if (mealType != null)
+                      Chip(
+                        label: Text(mealType, style: const TextStyle(fontSize: 11)),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    for (final it in items.take(6))
+                      if (it['raw_name'] != null)
+                        Text('• ${it['raw_name']}', style: t.textTheme.bodySmall),
+                  ]),
+                ],
+              ),
+            ),
+            if (kcal != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: t.colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text('${(kcal as num).toStringAsFixed(0)} kcal',
+                    style: TextStyle(color: t.colorScheme.primary, fontWeight: FontWeight.w700, fontSize: 12)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -175,24 +244,23 @@ class _MealsScreenState extends State<MealsScreen> {
           child: FutureBuilder<List<dynamic>>(
             future: _meals,
             builder: (c, s) {
-              if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-              if (s.hasError) return Center(child: Text('Hata: ${s.error}'));
+              if (s.connectionState != ConnectionState.done) return const LoadingView();
+              if (s.hasError) {
+                return ListView(padding: const EdgeInsets.all(12), children: [ErrorBanner(s.error)]);
+              }
               final data = s.data ?? [];
-              if (data.isEmpty) return const Center(child: Text('Bu gün için kayıt yok.'));
+              if (data.isEmpty) {
+                return const EmptyState(
+                  icon: Icons.no_meals_outlined,
+                  message: 'Bu gün için kayıt yok.\nSağ alttaki + ile ekle.',
+                );
+              }
               return RefreshIndicator(
-                onRefresh: () async => _reload(),
-                child: ListView.separated(
+                onRefresh: _reload,
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 96),
                   itemCount: data.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (c, i) {
-                    final m = data[i] as Map;
-                    final items = (m['items'] as List? ?? []).map((it) => it['raw_name']).join(', ');
-                    return ListTile(
-                      leading: const Icon(Icons.restaurant),
-                      title: Text(m['raw_text'] ?? items.toString()),
-                      subtitle: Text('${m['meal_type'] ?? '-'} • ${m['total_kcal'] ?? '-'} kcal'),
-                    );
-                  },
+                  itemBuilder: (c, i) => _mealCard(data[i] as Map),
                 ),
               );
             },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api.dart';
+import '../widgets/common.dart';
 
 class HomeScreen extends StatefulWidget {
   final ApiClient api;
@@ -13,8 +14,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   DateTime _date = DateTime.now();
-  Future<Map<String, dynamic>>? _summary;
-  Future<Map<String, dynamic>>? _rec;
+  Future<List<Map<String, dynamic>>>? _data;
 
   String get _isoDate => DateFormat('yyyy-MM-dd').format(_date);
 
@@ -24,11 +24,17 @@ class _HomeScreenState extends State<HomeScreen> {
     _reload();
   }
 
-  void _reload() {
-    setState(() {
-      _summary = widget.api.getSummary(date: _isoDate);
-      _rec = widget.api.getRecommendation(date: _isoDate);
-    });
+  Future<void> _reload() async {
+    final f = Future.wait([
+      widget.api.getSummary(date: _isoDate),
+      widget.api.getRecommendation(date: _isoDate),
+    ]);
+    setState(() => _data = f);
+    try {
+      await f;
+    } catch (_) {
+      // hata FutureBuilder'da gösterilir
+    }
   }
 
   Future<void> _pickDate() async {
@@ -44,26 +50,46 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _summaryCard(Map<String, dynamic> s) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  static double _d(dynamic v) => v == null ? 0 : (v as num).toDouble();
+  static String _n(dynamic v) =>
+      v == null ? '-' : (v is num ? v.toStringAsFixed(v % 1 == 0 ? 0 : 1) : '$v');
+
+  Widget _summaryCard(Map<String, dynamic> s, Map<String, dynamic> rec) {
+    final energy = (rec['energy'] as Map?) ?? {};
+    final target = energy['target_kcal'];
+    final proteinTarget = energy['protein_target_g'];
+    return SectionCard(
+      title: 'Günlük denge',
+      icon: Icons.local_fire_department_outlined,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text('Günlük özet — ${s['day']}',
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Wrap(spacing: 16, runSpacing: 8, children: [
-              _kv('Kalori', '${s['intake_kcal']} kcal'),
-              _kv('Protein', '${s['protein_g']} g'),
-              _kv('Karb.', '${s['carb_g']} g'),
-              _kv('Yağ', '${s['fat_g']} g'),
-              _kv('Öğün', '${s['meal_count']}'),
-            ]),
+            KcalRing(
+              intake: _d(s['intake_kcal']),
+              target: target == null ? null : _d(target),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                children: [
+                  MacroBar(
+                    label: 'Protein',
+                    value: _d(s['protein_g']),
+                    target: proteinTarget == null ? null : _d(proteinTarget),
+                    color: const Color(0xFF2563EB),
+                  ),
+                  MacroBar(label: 'Karbonhidrat', value: _d(s['carb_g']), color: const Color(0xFFD97706)),
+                  MacroBar(label: 'Yağ', value: _d(s['fat_g']), color: const Color(0xFFDB2777)),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
+        const SizedBox(height: 8),
+        Text('${s['meal_count']} öğün • ${s['item_count']} kalem',
+            style: Theme.of(context).textTheme.bodySmall),
+      ],
     );
   }
 
@@ -72,101 +98,98 @@ class _HomeScreenState extends State<HomeScreen> {
     final w = (r['workout'] as Map?) ?? {};
     final notes = (r['notes'] as List?) ?? [];
     final meals = (r['meal_suggestions'] as List?) ?? [];
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Öneri', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Wrap(spacing: 16, runSpacing: 8, children: [
-              _kv('BMR', _num(e['bmr'])),
-              _kv('TDEE', _num(e['tdee'])),
-              _kv('Hedef', _num(e['target_kcal'])),
-              _kv('Kalan', _num(e['remaining_kcal'])),
-              _kv('Protein hedef', _num(e['protein_target_g'])),
-              _kv('Protein kalan', _num(e['protein_remaining_g'])),
+    return SectionCard(
+      title: 'Öneri',
+      icon: Icons.tips_and_updates_outlined,
+      children: [
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          StatChip(label: 'BMR', value: _n(e['bmr'])),
+          StatChip(label: 'TDEE', value: _n(e['tdee'])),
+          StatChip(label: 'Hedef', value: _n(e['target_kcal'])),
+          StatChip(
+            label: 'Kalan',
+            value: _n(e['remaining_kcal']),
+            color: (e['remaining_kcal'] is num && e['remaining_kcal'] < 0)
+                ? Theme.of(context).colorScheme.error
+                : null,
+          ),
+          StatChip(label: 'Protein açığı', value: _n(e['protein_remaining_g'])),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          Icon(Icons.fitness_center, size: 18, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text('${w['focus'] ?? '-'} • ${w['weekly_minutes'] ?? '-'} dk/hafta',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ]),
+        for (final d in (w['days'] as List? ?? []))
+          Padding(
+            padding: const EdgeInsets.only(left: 24, top: 2),
+            child: Text('• $d', style: Theme.of(context).textTheme.bodySmall),
+          ),
+        if ((w['note'] ?? '').toString().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text('${w['note']}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+          ),
+        if (meals.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text('Öğün önerileri', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 6),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final m in meals)
+              Chip(
+                avatar: const Icon(Icons.restaurant, size: 16),
+                label: Text('${m['title_tr'] ?? ''}'),
+              ),
+          ]),
+        ],
+        if (notes.isNotEmpty) ...[
+          const Divider(height: 20),
+          for (final n in notes)
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('• '),
+              Expanded(child: Text('$n', style: Theme.of(context).textTheme.bodyMedium)),
             ]),
-            const Divider(),
-            Text('Antrenman: ${w['focus'] ?? '-'}  •  ${w['weekly_minutes'] ?? '-'} dk/hafta',
-                style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 4),
-            for (final d in (w['days'] as List? ?? [])) Text('• $d'),
-            const SizedBox(height: 4),
-            Text((w['note'] ?? '') as String,
-                style: Theme.of(context).textTheme.bodySmall),
-            if (notes.isNotEmpty) ...[
-              const Divider(),
-              for (final n in notes) Text('• $n'),
-            ],
-            if (meals.isNotEmpty) ...[
-              const Divider(),
-              const Text('Öğün önerileri:'),
-              const SizedBox(height: 4),
-              Wrap(spacing: 6, children: [
-                for (final m in meals)
-                  Chip(label: Text((m['title_tr'] ?? '') as String)),
-              ]),
-            ],
-          ],
-        ),
-      ),
+        ],
+        const SizedBox(height: 8),
+        Text('Değerler yaklaşıktır; tıbbi tavsiye değildir.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      ],
     );
   }
-
-  static Widget _kv(String k, String v) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(k, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-          Text(v, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ],
-      );
-
-  static String _num(dynamic v) =>
-      v == null ? '-' : (v is num ? v.toStringAsFixed(v % 1 == 0 ? 0 : 1) : v.toString());
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: () async => _reload(),
+      onRefresh: _reload,
       child: ListView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
         children: [
           Row(children: [
-            Expanded(child: Text('Tarih: $_isoDate')),
-            TextButton.icon(
-              onPressed: _pickDate,
-              icon: const Icon(Icons.calendar_today),
-              label: const Text('Değiştir'),
+            Expanded(
+              child: Text(DateFormat('d MMMM yyyy', 'tr').format(_date),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             ),
+            IconButton.filledTonal(onPressed: _pickDate, icon: const Icon(Icons.calendar_month)),
           ]),
-          FutureBuilder<Map<String, dynamic>>(
-            future: _summary,
-            builder: (c, s) => s.connectionState != ConnectionState.done
-                ? const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
-                : s.hasError
-                    ? _err(s.error)
-                    : _summaryCard(s.data!),
-          ),
-          FutureBuilder<Map<String, dynamic>>(
-            future: _rec,
-            builder: (c, s) => s.connectionState != ConnectionState.done
-                ? const SizedBox.shrink()
-                : s.hasError
-                    ? _err(s.error)
-                    : _recCard(s.data!),
+          const SizedBox(height: 4),
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: _data,
+            builder: (c, s) {
+              if (s.connectionState != ConnectionState.done) return const LoadingView();
+              if (s.hasError) return ErrorBanner(s.error);
+              final summary = s.data![0];
+              final rec = s.data![1];
+              return Column(children: [_summaryCard(summary, rec), _recCard(rec)]);
+            },
           ),
         ],
       ),
     );
   }
-
-  Widget _err(Object? e) => Card(
-        color: Colors.red.shade50,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text('Hata: $e', style: TextStyle(color: Colors.red.shade900)),
-        ),
-      );
 }

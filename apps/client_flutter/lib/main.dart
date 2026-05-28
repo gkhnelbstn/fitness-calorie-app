@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'config.dart';
+import 'theme.dart';
 import 'screens/blacklist_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/meal_plan_screen.dart';
@@ -44,10 +45,10 @@ class _FitnessAppState extends State<FitnessApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Beslenme & Fitness',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        useMaterial3: true,
-      ),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       home: RootScaffold(api: api, onSettingsChanged: _reload),
     );
   }
