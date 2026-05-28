@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../widgets/common.dart';
 
 class BlacklistScreen extends StatefulWidget {
   final ApiClient api;
@@ -57,10 +58,14 @@ class _BlacklistScreenState extends State<BlacklistScreen> {
       body: FutureBuilder<List<dynamic>>(
         future: _items,
         builder: (c, s) {
-          if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-          if (s.hasError) return Center(child: Text('Hata: ${s.error}'));
+          if (s.connectionState != ConnectionState.done) return const LoadingView();
+          if (s.hasError) {
+            return ListView(padding: const EdgeInsets.all(12), children: [ErrorBanner(s.error)]);
+          }
           final data = s.data ?? [];
-          if (data.isEmpty) return const Center(child: Text('Kara liste boş.'));
+          if (data.isEmpty) {
+            return const EmptyState(icon: Icons.block, message: 'Kara liste boş.\n+ ile malzeme ekle.');
+          }
           return RefreshIndicator(
             onRefresh: () async => _reload(),
             child: ListView.separated(
