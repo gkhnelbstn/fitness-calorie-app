@@ -5,7 +5,7 @@ Karar deterministik (kural motoru). blocked = excluded ∪ blacklist (canonical 
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import (
@@ -17,6 +17,7 @@ from ..models import (
 )
 from ..schemas.recipe import IngredientLine, RecipeRead
 from .substitution import substitute_for
+from .text import slugify_tr
 
 
 async def _canon_by_slug(session: AsyncSession, slug: str) -> IngredientCanonical | None:
@@ -117,7 +118,13 @@ async def search_recipes(
 ) -> list[RecipeRead]:
     stmt = select(Recipe)
     if q:
-        stmt = stmt.where(Recipe.title_tr.ilike(f"%{q}%"))
+        # Türkçe karakterler için: slug (ascii) + lower(title) eşleşmesi (OR).
+        q_norm = q.strip().lower()
+        q_slug = slugify_tr(q)
+        clauses = [func.lower(Recipe.title_tr).contains(q_norm)]
+        if q_slug:
+            clauses.append(Recipe.slug.contains(q_slug))
+        stmt = stmt.where(or_(*clauses))
     recipes = (await session.execute(stmt.order_by(Recipe.title_tr))).scalars().all()
     out: list[RecipeRead] = []
     for rc in recipes:
