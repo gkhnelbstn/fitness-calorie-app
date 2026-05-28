@@ -24,6 +24,7 @@ from .models import (
     RecipeTag,
     SourceAttribution,
 )
+from .services.recipe_kcal import compute_recipe_kcal
 from .services.resolver import get_or_create_canonical
 from .services.text import normalize_tr
 
@@ -598,6 +599,15 @@ async def seed_recipes(session: AsyncSession) -> int:
         for tag in row["tags"]:
             session.add(RecipeTag(recipe_id=recipe.id, tag=tag))
         added += 1
+    await session.commit()
+
+    # Recipe toplam kalorisini hesapla (canonical + nutrition + birim → gram).
+    all_recipes = (await session.execute(select(Recipe))).scalars().all()
+    for rc in all_recipes:
+        if rc.total_kcal is None:
+            kcal = await compute_recipe_kcal(session, rc.id)
+            if kcal is not None:
+                rc.total_kcal = kcal
     await session.commit()
     return added
 

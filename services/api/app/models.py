@@ -223,6 +223,7 @@ class MealLog(TimestampMixin, Base):
     meal_type: Mapped[str | None] = mapped_column(String(32), nullable=True)  # kahvalti…
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)  # doğal dil girdi
     total_kcal: Mapped[float | None] = mapped_column(Float, nullable=True)
+    photo_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
 
 class MealLogItem(Base):
