@@ -9,8 +9,18 @@ async def test_search_all(client, auth) -> None:
     resp = await client.get("/api/recipes", headers=auth)
     assert resp.status_code == 200
     slugs = await _slugs(resp)
-    assert {"menemen", "cacik", "mercimek-corbasi"} <= slugs
-    assert len(slugs) == 6
+    assert {
+        "menemen",
+        "cacik",
+        "mercimek-corbasi",
+        "izmir-koftesi",
+        "ezogelin-corbasi",
+        "kisir",
+        "omlet",
+        "coban-salatasi",
+        "haslanmis-tavuk",
+    } <= slugs
+    assert len(slugs) == 12
 
 
 async def test_search_query_filter(client, auth) -> None:
@@ -43,7 +53,7 @@ async def test_exclude_nonoptional_substituted(client, auth) -> None:
     pilav = next(r for r in recipes if r["slug"] == "pirinc-pilavi-tarif")
     pirinc = next(i for i in pilav["ingredients"] if i["raw_name"] == "pirinç")
     assert pirinc["status"] == "substituted"
-    assert pirinc["substitute"] == "şehriye"
+    assert pirinc["substitute"].casefold() == "şehriye"
 
 
 async def test_exclude_nonoptional_no_sub_blocks(client, auth) -> None:

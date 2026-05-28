@@ -30,6 +30,14 @@ class MealCreate(BaseModel):
     items: list[MealItem] = Field(default_factory=list)
 
 
+class BarcodeMealCreate(BaseModel):
+    """Barkod ile yemek ekleme (Open Food Facts ile besin değeri çekilir)."""
+
+    barcode: str = Field(..., examples=["8690000000000"])
+    grams: float = Field(default=100, ge=1, examples=[200])
+    meal_type: str | None = Field(default=None, examples=["kahvalti"])
+
+
 class MealRead(BaseModel):
     id: int
     eaten_at: datetime
