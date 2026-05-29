@@ -113,6 +113,7 @@ async def test_live_recipe_search(client, auth) -> None:
             json={
                 "meals": [
                     {
+                        "idMeal": "52001",
                         "strMeal": "Shakshuka",
                         "strInstructions": "Cook.",
                         "strArea": "Egyptian",
@@ -132,11 +133,67 @@ async def test_live_recipe_search(client, auth) -> None:
 
 
 @respx.mock
+async def test_live_search_multi_endpoint(client, auth) -> None:
+    # q='tavuk' → sözlük: name=chicken + cat=Chicken + ing=chicken_breast/chicken
+    respx.get(f"{S.themealdb_base_url}/search.php").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "meals": [
+                    {
+                        "idMeal": "100",
+                        "strMeal": "Chicken Curry",
+                        "strInstructions": "Cook.",
+                        "strArea": "Indian",
+                        "strCategory": "Chicken",
+                        "strIngredient1": "Chicken",
+                        "strMeasure1": "500g",
+                    }
+                ]
+            },
+        )
+    )
+    respx.get(f"{S.themealdb_base_url}/filter.php").mock(
+        return_value=httpx.Response(200, json={"meals": [{"idMeal": "201"}, {"idMeal": "202"}]})
+    )
+
+    def _lookup(request):
+        mid = request.url.params.get("i")
+        return httpx.Response(
+            200,
+            json={
+                "meals": [
+                    {
+                        "idMeal": mid,
+                        "strMeal": f"Tavuk Yemegi {mid}",
+                        "strInstructions": "Pişir.",
+                        "strArea": "Turkish",
+                        "strCategory": "Chicken",
+                        "strIngredient1": "Chicken",
+                        "strMeasure1": "300g",
+                    }
+                ]
+            },
+        )
+
+    respx.get(f"{S.themealdb_base_url}/lookup.php").mock(side_effect=_lookup)
+
+    resp = await client.get("/api/recipes?q=tavuk&live=true&limit=100", headers=auth)
+    assert resp.status_code == 200
+    slugs = {r["slug"] for r in resp.json()}
+    # filter.php + lookup.php yolu: Türkçe başlıklı kayıtlar q=tavuk ile gelir
+    assert "tavuk-yemegi-201" in slugs and "tavuk-yemegi-202" in slugs
+    # search.php yolu da içe aldı (İngilizce başlık; q=chicken ile bulunur)
+    chicken = await client.get("/api/recipes?q=chicken&limit=100", headers=auth)
+    assert "chicken-curry" in {r["slug"] for r in chicken.json()}
+
+
+@respx.mock
 async def test_live_search_no_match_graceful(client, auth) -> None:
     respx.get(f"{S.themealdb_base_url}/search.php").mock(
         return_value=httpx.Response(200, json={"meals": None})
     )
-    resp = await client.get("/api/recipes?q=bilinmeyenxyz&live=true", headers=auth)
+    resp = await client.get("/api/recipes?q=zzzbilinmeyen&live=true", headers=auth)
     assert resp.status_code == 200  # sonuç yok ama hata vermez
 
 

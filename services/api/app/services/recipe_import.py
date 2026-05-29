@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..adapters.spoonacular import SpoonacularAdapter
 from ..adapters.themealdb import TheMealDbAdapter
+from ..data.food_terms import resolve_query
 from ..models import Recipe, RecipeIngredient, RecipeStepTr, RecipeTag
 from .recipe_kcal import compute_recipe_kcal
 from .resolver import get_or_create_canonical
@@ -119,25 +120,64 @@ async def import_themealdb(
     return count
 
 
+_LOOKUP_CAP = 80  # tek aramada en fazla detay çekimi (ağ koruması)
+
+
 async def import_themealdb_query(
     session: AsyncSession, query_tr: str, *, do_translate: bool = True
 ) -> int:
-    """Canlı arama: Türkçe sorguyu EN'e çevir, TheMealDB'de ada göre ara, idempotent import.
+    """Canlı arama (çok-uçlu): TR sorgu → sözlük ile EN ad/kategori/malzeme/bölge ipuçları
+    → search.php + filter.php(c/i/a) ile geniş aday topla → dedupe → lookup.php detay → import.
 
-    Çeviri kapalı/anahtarsızsa sorgu olduğu gibi gönderilir (İngilizce arama varsayımı).
-    Döner: yeni eklenen tarif sayısı.
+    Sözlük ıskalarsa LLM ile EN'e çevirip ada göre arar. Yaygın yemekler (tavuk/et/köfte/
+    salata/pirinç) için çok sayıda çeşit getirir. Döner: yeni eklenen tarif sayısı.
     """
     adapter = TheMealDbAdapter()
     translator = Translator()
-    query_en = await translator.to_english(query_tr) if do_translate else query_tr
-    meals = await adapter.search_by_name(query_en)
-    if not meals:
-        return 0
+    hints = resolve_query(query_tr)
+    if not hints.names:
+        # Sözlük adı yoksa: LLM çevirisi (veya ham sorgu) ada göre arama için.
+        en = await translator.to_english(query_tr) if do_translate else query_tr
+        if en:
+            hints.names.add(en)
+
     source = await get_or_create_source(
         session, name="TheMealDB", url="https://www.themealdb.com", license_mode="atıf"
     )
+
+    full_meals: dict[str, dict] = {}  # idMeal → tam detay
+    filter_ids: set[str] = set()  # detayı sonra çekilecek id'ler
+
+    # 1) Ada göre arama → tam detay döner
+    for name in list(hints.names)[:6]:
+        for meal in await adapter.search_by_name(name):
+            mid = meal.get("idMeal")
+            if mid:
+                full_meals[mid] = meal
+
+    # 2) Kategori/malzeme/bölge filtreleri → yalnız id (detay yok)
+    for cat in hints.categories:
+        for m in await adapter.filter_by("c", cat):
+            if m.get("idMeal"):
+                filter_ids.add(m["idMeal"])
+    for ing in hints.ingredients:
+        for m in await adapter.filter_by("i", ing):
+            if m.get("idMeal"):
+                filter_ids.add(m["idMeal"])
+    for area in hints.areas:
+        for m in await adapter.filter_by("a", area):
+            if m.get("idMeal"):
+                filter_ids.add(m["idMeal"])
+
+    # 3) Filtre id'lerinin detayını çek (zaten ada-göre gelenleri atla, cap uygula)
+    pending = [mid for mid in filter_ids if mid not in full_meals][:_LOOKUP_CAP]
+    for mid in pending:
+        looked = await adapter.lookup(mid)
+        if looked and looked.get("idMeal"):
+            full_meals[looked["idMeal"]] = looked
+
     count = 0
-    for meal in meals:
+    for meal in full_meals.values():
         ok = await _import_recipe(
             session,
             title=meal.get("strMeal", ""),
