@@ -48,8 +48,8 @@ class ApiClient {
   Future<dynamic> _get(String path, [Map<String, dynamic>? q]) async =>
       _decode(await http.get(_u(path, q), headers: _headers));
 
-  Future<dynamic> _post(String path, Object body) async =>
-      _decode(await http.post(_u(path), headers: _headers, body: jsonEncode(body)));
+  Future<dynamic> _post(String path, Object body, [Map<String, dynamic>? q]) async =>
+      _decode(await http.post(_u(path, q), headers: _headers, body: jsonEncode(body)));
 
   Future<dynamic> _put(String path, Object body) async =>
       _decode(await http.put(_u(path), headers: _headers, body: jsonEncode(body)));
@@ -115,15 +115,75 @@ class ApiClient {
   Future<Map<String, dynamic>> getSummary({String? date}) async =>
       Map.from(await _get('/api/summary', {'date': date}));
 
+  Future<Map<String, dynamic>> updateMeal(int id, Map<String, dynamic> body) async =>
+      Map.from(await _put('/api/meals/$id', body));
+  Future<void> deleteMeal(int id) async => _delete('/api/meals/$id');
+
   // --- Recipes ---
-  Future<List<dynamic>> searchRecipes({String? q, List<String> exclude = const []}) async {
-    final res = await _get('/api/recipes', {'q': q, 'exclude': exclude});
+  Future<List<dynamic>> searchRecipes({
+    String? q,
+    List<String> exclude = const [],
+    int limit = 24,
+    int offset = 0,
+    bool live = false,
+  }) async {
+    final res = await _get('/api/recipes', {
+      'q': q,
+      'exclude': exclude,
+      'limit': limit,
+      'offset': offset,
+      if (live) 'live': 'true',
+    });
     return List.from(res);
   }
   Future<List<dynamic>> cookWith({List<String> have = const [], List<String> exclude = const []}) async {
     final res = await _get('/api/recipes/cook-with', {'have': have, 'exclude': exclude});
     return List.from(res);
   }
+
+  // --- Workouts (Antrenman) ---
+  Future<List<dynamic>> listWorkouts({
+    String? muscle,
+    String? level,
+    String? equipmentType,
+    String? q,
+  }) async {
+    final res = await _get('/api/workouts', {
+      'muscle': muscle,
+      'level': level,
+      'equipment_type': equipmentType,
+      'q': q,
+    });
+    return List.from(res);
+  }
+  Future<Map<String, dynamic>> workoutPlan({
+    String? goal,
+    String? level,
+    int? daysPerWeek,
+  }) async {
+    return Map.from(await _get('/api/workout-plan', {
+      'goal': goal,
+      'level': level,
+      'days_per_week': daysPerWeek,
+    }));
+  }
+  Future<List<dynamic>> listWorkoutLogs({String? date}) async =>
+      List.from(await _get('/api/workout-logs', {'date': date}));
+  Future<Map<String, dynamic>> addWorkoutLog(
+    String templateSlug, {
+    int? sets,
+    String? reps,
+    int minutes = 30,
+    String? date,
+  }) async {
+    return Map.from(await _post('/api/workout-logs', {
+      'template_slug': templateSlug,
+      'sets': sets,
+      'reps': reps,
+      'minutes': minutes,
+    }, {'date': date}));
+  }
+  Future<void> deleteWorkoutLog(int id) async => _delete('/api/workout-logs/$id');
 
   // --- Blacklist ---
   Future<List<dynamic>> listBlacklist() async => List.from(await _get('/api/blacklist'));

@@ -10,6 +10,7 @@ import 'screens/meals_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/recipes_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/workout_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,12 +70,13 @@ class _RootScaffoldState extends State<RootScaffold> {
   List<Widget> get _tabs => [
         HomeScreen(api: widget.api),
         MealsScreen(api: widget.api),
+        WorkoutScreen(api: widget.api),
         RecipesScreen(api: widget.api),
         BlacklistScreen(api: widget.api),
         ProfileScreen(api: widget.api),
       ];
 
-  static const _titles = ['Özet', 'Yemekler', 'Tarifler', 'Kara Liste', 'Profil'];
+  static const _titles = ['Özet', 'Yemekler', 'Antrenman', 'Tarifler', 'Kara Liste', 'Profil'];
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +112,7 @@ class _RootScaffoldState extends State<RootScaffold> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Özet'),
           NavigationDestination(icon: Icon(Icons.restaurant_menu), label: 'Yemek'),
+          NavigationDestination(icon: Icon(Icons.fitness_center), label: 'Antrenman'),
           NavigationDestination(icon: Icon(Icons.menu_book), label: 'Tarif'),
           NavigationDestination(icon: Icon(Icons.block), label: 'Kara liste'),
           NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profil'),
