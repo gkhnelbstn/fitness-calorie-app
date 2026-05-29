@@ -13,30 +13,246 @@ MET = {"kuvvet": 5, "kardiyo": 8}
 
 # (slug, name_tr, primary_muscle, level, equipment, category, secondary)
 EXERCISES: list[dict[str, Any]] = [
-    {"id": 1, "slug": "bench-press", "name_tr": "Bench Press", "primary_muscle": "gogus", "level": "intermediate", "equipment": "halter", "category": "kuvvet", "secondary": ["triceps", "omuz"]},
-    {"id": 2, "slug": "incline-dumbbell-press", "name_tr": "Eğimli Dambıl Press", "primary_muscle": "gogus", "level": "intermediate", "equipment": "dambıl", "category": "kuvvet", "secondary": ["omuz"]},
-    {"id": 3, "slug": "pull-up", "name_tr": "Barfiks", "primary_muscle": "sirt", "level": "expert", "equipment": "vücut ağırlığı", "category": "kuvvet", "secondary": ["biceps"]},
-    {"id": 4, "slug": "lat-pulldown", "name_tr": "Lat Çekiş", "primary_muscle": "sirt", "level": "beginner", "equipment": "makine", "category": "kuvvet", "secondary": ["biceps"]},
-    {"id": 5, "slug": "overhead-press", "name_tr": "Omuz Press", "primary_muscle": "omuz", "level": "intermediate", "equipment": "halter", "category": "kuvvet", "secondary": ["triceps"]},
-    {"id": 6, "slug": "squat", "name_tr": "Squat", "primary_muscle": "bacak", "level": "intermediate", "equipment": "halter", "category": "kuvvet", "secondary": ["kalca"]},
-    {"id": 7, "slug": "romanian-deadlift", "name_tr": "Romanian Deadlift", "primary_muscle": "bacak", "level": "intermediate", "equipment": "halter", "category": "kuvvet", "secondary": ["sirt", "kalca"]},
-    {"id": 8, "slug": "plank", "name_tr": "Plank", "primary_muscle": "karin", "level": "beginner", "equipment": "vücut ağırlığı", "category": "kuvvet", "secondary": ["bel"]},
-    {"id": 9, "slug": "bicycle-crunch", "name_tr": "Bisiklet Mekiği", "primary_muscle": "karin", "level": "beginner", "equipment": "vücut ağırlığı", "category": "kuvvet", "secondary": []},
-    {"id": 10, "slug": "treadmill-run", "name_tr": "Koşu Bandı", "primary_muscle": "kardiyo", "level": "beginner", "equipment": "makine", "category": "kardiyo", "secondary": []},
-    {"id": 11, "slug": "hiit-intervals", "name_tr": "HIIT İnterval", "primary_muscle": "kardiyo", "level": "intermediate", "equipment": "vücut ağırlığı", "category": "kardiyo", "secondary": []},
-    {"id": 12, "slug": "walking", "name_tr": "Tempolu Yürüyüş", "primary_muscle": "kardiyo", "level": "beginner", "equipment": "yok", "category": "kardiyo", "secondary": []},
-    {"id": 13, "slug": "dumbbell-curl", "name_tr": "Dambıl Biceps Curl", "primary_muscle": "kol", "level": "beginner", "equipment": "dambıl", "category": "kuvvet", "secondary": []},
-    {"id": 14, "slug": "tricep-pushdown", "name_tr": "Triceps Pushdown", "primary_muscle": "kol", "level": "beginner", "equipment": "makine", "category": "kuvvet", "secondary": []},
-    {"id": 15, "slug": "leg-press", "name_tr": "Leg Press", "primary_muscle": "bacak", "level": "beginner", "equipment": "makine", "category": "kuvvet", "secondary": ["kalca"]},
-    {"id": 16, "slug": "dips", "name_tr": "Dips (Paralel)", "primary_muscle": "gogus", "level": "intermediate", "equipment": "vücut ağırlığı", "category": "kuvvet", "secondary": ["kol", "omuz"]},
-    {"id": 17, "slug": "dumbbell-shoulder-press", "name_tr": "Dambıl Omuz Press", "primary_muscle": "omuz", "level": "beginner", "equipment": "dambıl", "category": "kuvvet", "secondary": ["kol"]},
-    {"id": 18, "slug": "leg-curl", "name_tr": "Leg Curl", "primary_muscle": "bacak", "level": "beginner", "equipment": "makine", "category": "kuvvet", "secondary": ["kalca"]},
-    {"id": 19, "slug": "seated-row", "name_tr": "Oturarak Kürek", "primary_muscle": "sirt", "level": "beginner", "equipment": "makine", "category": "kuvvet", "secondary": ["kol"]},
-    {"id": 20, "slug": "chest-fly", "name_tr": "Pec Deck (Fly)", "primary_muscle": "gogus", "level": "beginner", "equipment": "makine", "category": "kuvvet", "secondary": ["omuz"]},
-    {"id": 21, "slug": "hip-thrust", "name_tr": "Hip Thrust", "primary_muscle": "kalca", "level": "intermediate", "equipment": "halter", "category": "kuvvet", "secondary": ["bacak"]},
-    {"id": 22, "slug": "rowing-machine", "name_tr": "Kürek Makinesi", "primary_muscle": "kardiyo", "level": "beginner", "equipment": "makine", "category": "kardiyo", "secondary": ["sirt"]},
-    {"id": 23, "slug": "jump-rope", "name_tr": "İp Atlama", "primary_muscle": "kardiyo", "level": "beginner", "equipment": "yok", "category": "kardiyo", "secondary": ["bacak"]},
-    {"id": 24, "slug": "goblet-squat", "name_tr": "Goblet Squat", "primary_muscle": "bacak", "level": "beginner", "equipment": "dambıl", "category": "kuvvet", "secondary": ["kalca"]},
+    {
+        "id": 1,
+        "slug": "bench-press",
+        "name_tr": "Bench Press",
+        "primary_muscle": "gogus",
+        "level": "intermediate",
+        "equipment": "halter",
+        "category": "kuvvet",
+        "secondary": ["triceps", "omuz"],
+    },
+    {
+        "id": 2,
+        "slug": "incline-dumbbell-press",
+        "name_tr": "Eğimli Dambıl Press",
+        "primary_muscle": "gogus",
+        "level": "intermediate",
+        "equipment": "dambıl",
+        "category": "kuvvet",
+        "secondary": ["omuz"],
+    },
+    {
+        "id": 3,
+        "slug": "pull-up",
+        "name_tr": "Barfiks",
+        "primary_muscle": "sirt",
+        "level": "expert",
+        "equipment": "vücut ağırlığı",
+        "category": "kuvvet",
+        "secondary": ["biceps"],
+    },
+    {
+        "id": 4,
+        "slug": "lat-pulldown",
+        "name_tr": "Lat Çekiş",
+        "primary_muscle": "sirt",
+        "level": "beginner",
+        "equipment": "makine",
+        "category": "kuvvet",
+        "secondary": ["biceps"],
+    },
+    {
+        "id": 5,
+        "slug": "overhead-press",
+        "name_tr": "Omuz Press",
+        "primary_muscle": "omuz",
+        "level": "intermediate",
+        "equipment": "halter",
+        "category": "kuvvet",
+        "secondary": ["triceps"],
+    },
+    {
+        "id": 6,
+        "slug": "squat",
+        "name_tr": "Squat",
+        "primary_muscle": "bacak",
+        "level": "intermediate",
+        "equipment": "halter",
+        "category": "kuvvet",
+        "secondary": ["kalca"],
+    },
+    {
+        "id": 7,
+        "slug": "romanian-deadlift",
+        "name_tr": "Romanian Deadlift",
+        "primary_muscle": "bacak",
+        "level": "intermediate",
+        "equipment": "halter",
+        "category": "kuvvet",
+        "secondary": ["sirt", "kalca"],
+    },
+    {
+        "id": 8,
+        "slug": "plank",
+        "name_tr": "Plank",
+        "primary_muscle": "karin",
+        "level": "beginner",
+        "equipment": "vücut ağırlığı",
+        "category": "kuvvet",
+        "secondary": ["bel"],
+    },
+    {
+        "id": 9,
+        "slug": "bicycle-crunch",
+        "name_tr": "Bisiklet Mekiği",
+        "primary_muscle": "karin",
+        "level": "beginner",
+        "equipment": "vücut ağırlığı",
+        "category": "kuvvet",
+        "secondary": [],
+    },
+    {
+        "id": 10,
+        "slug": "treadmill-run",
+        "name_tr": "Koşu Bandı",
+        "primary_muscle": "kardiyo",
+        "level": "beginner",
+        "equipment": "makine",
+        "category": "kardiyo",
+        "secondary": [],
+    },
+    {
+        "id": 11,
+        "slug": "hiit-intervals",
+        "name_tr": "HIIT İnterval",
+        "primary_muscle": "kardiyo",
+        "level": "intermediate",
+        "equipment": "vücut ağırlığı",
+        "category": "kardiyo",
+        "secondary": [],
+    },
+    {
+        "id": 12,
+        "slug": "walking",
+        "name_tr": "Tempolu Yürüyüş",
+        "primary_muscle": "kardiyo",
+        "level": "beginner",
+        "equipment": "yok",
+        "category": "kardiyo",
+        "secondary": [],
+    },
+    {
+        "id": 13,
+        "slug": "dumbbell-curl",
+        "name_tr": "Dambıl Biceps Curl",
+        "primary_muscle": "kol",
+        "level": "beginner",
+        "equipment": "dambıl",
+        "category": "kuvvet",
+        "secondary": [],
+    },
+    {
+        "id": 14,
+        "slug": "tricep-pushdown",
+        "name_tr": "Triceps Pushdown",
+        "primary_muscle": "kol",
+        "level": "beginner",
+        "equipment": "makine",
+        "category": "kuvvet",
+        "secondary": [],
+    },
+    {
+        "id": 15,
+        "slug": "leg-press",
+        "name_tr": "Leg Press",
+        "primary_muscle": "bacak",
+        "level": "beginner",
+        "equipment": "makine",
+        "category": "kuvvet",
+        "secondary": ["kalca"],
+    },
+    {
+        "id": 16,
+        "slug": "dips",
+        "name_tr": "Dips (Paralel)",
+        "primary_muscle": "gogus",
+        "level": "intermediate",
+        "equipment": "vücut ağırlığı",
+        "category": "kuvvet",
+        "secondary": ["kol", "omuz"],
+    },
+    {
+        "id": 17,
+        "slug": "dumbbell-shoulder-press",
+        "name_tr": "Dambıl Omuz Press",
+        "primary_muscle": "omuz",
+        "level": "beginner",
+        "equipment": "dambıl",
+        "category": "kuvvet",
+        "secondary": ["kol"],
+    },
+    {
+        "id": 18,
+        "slug": "leg-curl",
+        "name_tr": "Leg Curl",
+        "primary_muscle": "bacak",
+        "level": "beginner",
+        "equipment": "makine",
+        "category": "kuvvet",
+        "secondary": ["kalca"],
+    },
+    {
+        "id": 19,
+        "slug": "seated-row",
+        "name_tr": "Oturarak Kürek",
+        "primary_muscle": "sirt",
+        "level": "beginner",
+        "equipment": "makine",
+        "category": "kuvvet",
+        "secondary": ["kol"],
+    },
+    {
+        "id": 20,
+        "slug": "chest-fly",
+        "name_tr": "Pec Deck (Fly)",
+        "primary_muscle": "gogus",
+        "level": "beginner",
+        "equipment": "makine",
+        "category": "kuvvet",
+        "secondary": ["omuz"],
+    },
+    {
+        "id": 21,
+        "slug": "hip-thrust",
+        "name_tr": "Hip Thrust",
+        "primary_muscle": "kalca",
+        "level": "intermediate",
+        "equipment": "halter",
+        "category": "kuvvet",
+        "secondary": ["bacak"],
+    },
+    {
+        "id": 22,
+        "slug": "rowing-machine",
+        "name_tr": "Kürek Makinesi",
+        "primary_muscle": "kardiyo",
+        "level": "beginner",
+        "equipment": "makine",
+        "category": "kardiyo",
+        "secondary": ["sirt"],
+    },
+    {
+        "id": 23,
+        "slug": "jump-rope",
+        "name_tr": "İp Atlama",
+        "primary_muscle": "kardiyo",
+        "level": "beginner",
+        "equipment": "yok",
+        "category": "kardiyo",
+        "secondary": ["bacak"],
+    },
+    {
+        "id": 24,
+        "slug": "goblet-squat",
+        "name_tr": "Goblet Squat",
+        "primary_muscle": "bacak",
+        "level": "beginner",
+        "equipment": "dambıl",
+        "category": "kuvvet",
+        "secondary": ["kalca"],
+    },
 ]
 
 EQ_TYPE_LABEL = {"makine": "Makine", "serbest": "Serbest ağırlık", "vücut": "Vücut ağırlığı"}
@@ -51,17 +267,61 @@ def eq_type(eq: str) -> str:
 
 
 INSTR: dict[str, list[str]] = {
-    "bench-press": ["Sırt üstü uzan, gözler bar hizasında.", "Kavrama omuzdan biraz geniş, bilekler dik.", "Barı göğse kontrollü indir, kürek kemiklerini sık, patlayıcı it."],
-    "incline-dumbbell-press": ["Sehpayı 30-45° eğ.", "Dambılları göğüs üst hizasına indir.", "Dirsekleri 45° açıyla tut, yukarıda sıkıştır."],
-    "overhead-press": ["Bar omuz önünde, karın sıkı.", "Başın üzerine dik it, kaburgaları açma.", "Kontrollü indir."],
-    "pull-up": ["Bara omuzdan geniş asıl.", "Kürekleri aşağı-geri çekerek çeneyi barın üstüne taşı.", "Kontrollü in, tam aç."],
-    "dumbbell-curl": ["Dirsekler gövdeye sabit.", "Dambılı sıkışana kadar kaldır, sallanma.", "Negatifi yavaş indir."],
-    "squat": ["Bar üst sırtta, ayaklar omuz genişliği.", "Kalçayı geri-aşağı, dizler parmak yönünde.", "Uyluk paralelin altına in, topuktan it."],
-    "romanian-deadlift": ["Hafif diz bükük, bar bacağa yakın.", "Kalçayı geri it, sırt nötr.", "Hamstringde gerilim hissedince yukarı kalk."],
-    "hip-thrust": ["Sırt üst kısmı bench’e dayalı, bar kalçada.", "Topuktan iterek kalçayı yukarı kilitle.", "Üstte gluteyi 1 sn sık."],
-    "plank": ["Dirsekler omuz altında.", "Gövde baştan topuğa düz, karın+kalça sıkı.", "Beli çökertme."],
-    "bicycle-crunch": ["Sırt üstü, eller şakakta.", "Karşı dirsek-diz buluştur, dönüşü karından yap.", "Kontrollü ve yavaş."],
-    "dips": ["Paralel barda dirsekleri 90°ye bük.", "Hafif öne eğil (göğüs) ya da dik dur (triceps).", "Patlayıcı yukarı it."],
+    "bench-press": [
+        "Sırt üstü uzan, gözler bar hizasında.",
+        "Kavrama omuzdan biraz geniş, bilekler dik.",
+        "Barı göğse kontrollü indir, kürek kemiklerini sık, patlayıcı it.",
+    ],
+    "incline-dumbbell-press": [
+        "Sehpayı 30-45° eğ.",
+        "Dambılları göğüs üst hizasına indir.",
+        "Dirsekleri 45° açıyla tut, yukarıda sıkıştır.",
+    ],
+    "overhead-press": [
+        "Bar omuz önünde, karın sıkı.",
+        "Başın üzerine dik it, kaburgaları açma.",
+        "Kontrollü indir.",
+    ],
+    "pull-up": [
+        "Bara omuzdan geniş asıl.",
+        "Kürekleri aşağı-geri çekerek çeneyi barın üstüne taşı.",
+        "Kontrollü in, tam aç.",
+    ],
+    "dumbbell-curl": [
+        "Dirsekler gövdeye sabit.",
+        "Dambılı sıkışana kadar kaldır, sallanma.",
+        "Negatifi yavaş indir.",
+    ],
+    "squat": [
+        "Bar üst sırtta, ayaklar omuz genişliği.",
+        "Kalçayı geri-aşağı, dizler parmak yönünde.",
+        "Uyluk paralelin altına in, topuktan it.",
+    ],
+    "romanian-deadlift": [
+        "Hafif diz bükük, bar bacağa yakın.",
+        "Kalçayı geri it, sırt nötr.",
+        "Hamstringde gerilim hissedince yukarı kalk.",
+    ],
+    "hip-thrust": [
+        "Sırt üst kısmı bench’e dayalı, bar kalçada.",
+        "Topuktan iterek kalçayı yukarı kilitle.",
+        "Üstte gluteyi 1 sn sık.",
+    ],
+    "plank": [
+        "Dirsekler omuz altında.",
+        "Gövde baştan topuğa düz, karın+kalça sıkı.",
+        "Beli çökertme.",
+    ],
+    "bicycle-crunch": [
+        "Sırt üstü, eller şakakta.",
+        "Karşı dirsek-diz buluştur, dönüşü karından yap.",
+        "Kontrollü ve yavaş.",
+    ],
+    "dips": [
+        "Paralel barda dirsekleri 90°ye bük.",
+        "Hafif öne eğil (göğüs) ya da dik dur (triceps).",
+        "Patlayıcı yukarı it.",
+    ],
     "goblet-squat": ["Dambılı göğüs önünde tut.", "Dik gövde ile çömel.", "Topuktan kalk."],
     "jump-rope": ["Bilekten çevir, sıçramalar kısa.", "Ayak ucunda kal."],
     "walking": ["Tempolu, kol salınımı serbest.", "Hafif nefes nefese kalacak hızda."],
@@ -136,7 +396,9 @@ def _alts_by_type(slug: str) -> dict[str, list[dict]]:
         if e["slug"] == slug or e["primary_muscle"] != base["primary_muscle"]:
             continue
         t = eq_type(e["equipment"])
-        g.setdefault(t, []).append({"slug": e["slug"], "name_tr": e["name_tr"], "equipment": e["equipment"]})
+        g.setdefault(t, []).append(
+            {"slug": e["slug"], "name_tr": e["name_tr"], "equipment": e["equipment"]}
+        )
     return g
 
 
@@ -147,8 +409,10 @@ def _pick_row_alt(slug: str) -> dict | None:
     g = _alts_by_type(slug)
     bt = eq_type(base["equipment"])
     order = (
-        ["serbest", "vücut", "makine"] if bt == "makine"
-        else ["makine", "vücut", "serbest"] if bt == "serbest"
+        ["serbest", "vücut", "makine"]
+        if bt == "makine"
+        else ["makine", "vücut", "serbest"]
+        if bt == "serbest"
         else ["makine", "serbest", "vücut"]
     )
     for t in order:
@@ -159,22 +423,119 @@ def _pick_row_alt(slug: str) -> dict | None:
 
 STRENGTH_POOLS: dict[str, list[dict]] = {
     "kas_yap": [
-        {"title": "İtiş — Göğüs / Omuz / Triceps", "ex": [{"slug": "bench-press", "sets": 4, "reps": "8-10", "rest": 90}, {"slug": "incline-dumbbell-press", "sets": 3, "reps": "10-12", "rest": 75}, {"slug": "overhead-press", "sets": 3, "reps": "8-10", "rest": 90}, {"slug": "tricep-pushdown", "sets": 3, "reps": "12-15", "rest": 60}]},
-        {"title": "Çekiş — Sırt / Biceps", "ex": [{"slug": "pull-up", "sets": 4, "reps": "6-10", "rest": 90}, {"slug": "seated-row", "sets": 3, "reps": "10-12", "rest": 75}, {"slug": "lat-pulldown", "sets": 3, "reps": "10-12", "rest": 75}, {"slug": "dumbbell-curl", "sets": 3, "reps": "12", "rest": 60}]},
-        {"title": "Bacak / Kalça", "ex": [{"slug": "squat", "sets": 4, "reps": "6-8", "rest": 120}, {"slug": "romanian-deadlift", "sets": 3, "reps": "8-10", "rest": 100}, {"slug": "leg-press", "sets": 3, "reps": "10-12", "rest": 90}, {"slug": "hip-thrust", "sets": 3, "reps": "10-12", "rest": 75}]},
-        {"title": "Üst vücut", "ex": [{"slug": "incline-dumbbell-press", "sets": 3, "reps": "10", "rest": 75}, {"slug": "seated-row", "sets": 3, "reps": "10", "rest": 75}, {"slug": "dumbbell-shoulder-press", "sets": 3, "reps": "12", "rest": 60}, {"slug": "dumbbell-curl", "sets": 3, "reps": "12", "rest": 45}]},
-        {"title": "Tam vücut + Karın", "ex": [{"slug": "goblet-squat", "sets": 3, "reps": "12", "rest": 75}, {"slug": "bench-press", "sets": 3, "reps": "10", "rest": 75}, {"slug": "lat-pulldown", "sets": 3, "reps": "12", "rest": 75}, {"slug": "plank", "sets": 3, "reps": "45 sn", "rest": 45}, {"slug": "bicycle-crunch", "sets": 3, "reps": "20", "rest": 40}]},
+        {
+            "title": "İtiş — Göğüs / Omuz / Triceps",
+            "ex": [
+                {"slug": "bench-press", "sets": 4, "reps": "8-10", "rest": 90},
+                {"slug": "incline-dumbbell-press", "sets": 3, "reps": "10-12", "rest": 75},
+                {"slug": "overhead-press", "sets": 3, "reps": "8-10", "rest": 90},
+                {"slug": "tricep-pushdown", "sets": 3, "reps": "12-15", "rest": 60},
+            ],
+        },
+        {
+            "title": "Çekiş — Sırt / Biceps",
+            "ex": [
+                {"slug": "pull-up", "sets": 4, "reps": "6-10", "rest": 90},
+                {"slug": "seated-row", "sets": 3, "reps": "10-12", "rest": 75},
+                {"slug": "lat-pulldown", "sets": 3, "reps": "10-12", "rest": 75},
+                {"slug": "dumbbell-curl", "sets": 3, "reps": "12", "rest": 60},
+            ],
+        },
+        {
+            "title": "Bacak / Kalça",
+            "ex": [
+                {"slug": "squat", "sets": 4, "reps": "6-8", "rest": 120},
+                {"slug": "romanian-deadlift", "sets": 3, "reps": "8-10", "rest": 100},
+                {"slug": "leg-press", "sets": 3, "reps": "10-12", "rest": 90},
+                {"slug": "hip-thrust", "sets": 3, "reps": "10-12", "rest": 75},
+            ],
+        },
+        {
+            "title": "Üst vücut",
+            "ex": [
+                {"slug": "incline-dumbbell-press", "sets": 3, "reps": "10", "rest": 75},
+                {"slug": "seated-row", "sets": 3, "reps": "10", "rest": 75},
+                {"slug": "dumbbell-shoulder-press", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "dumbbell-curl", "sets": 3, "reps": "12", "rest": 45},
+            ],
+        },
+        {
+            "title": "Tam vücut + Karın",
+            "ex": [
+                {"slug": "goblet-squat", "sets": 3, "reps": "12", "rest": 75},
+                {"slug": "bench-press", "sets": 3, "reps": "10", "rest": 75},
+                {"slug": "lat-pulldown", "sets": 3, "reps": "12", "rest": 75},
+                {"slug": "plank", "sets": 3, "reps": "45 sn", "rest": 45},
+                {"slug": "bicycle-crunch", "sets": 3, "reps": "20", "rest": 40},
+            ],
+        },
     ],
     "kilo_ver": [
-        {"title": "Tam vücut A", "ex": [{"slug": "goblet-squat", "sets": 3, "reps": "12", "rest": 60}, {"slug": "bench-press", "sets": 3, "reps": "10", "rest": 60}, {"slug": "lat-pulldown", "sets": 3, "reps": "12", "rest": 60}, {"slug": "plank", "sets": 3, "reps": "40 sn", "rest": 40}]},
-        {"title": "Tam vücut B", "ex": [{"slug": "leg-press", "sets": 3, "reps": "12", "rest": 60}, {"slug": "dumbbell-shoulder-press", "sets": 3, "reps": "12", "rest": 60}, {"slug": "seated-row", "sets": 3, "reps": "12", "rest": 60}, {"slug": "bicycle-crunch", "sets": 3, "reps": "20", "rest": 40}]},
-        {"title": "Alt vücut + Kalça", "ex": [{"slug": "squat", "sets": 3, "reps": "10", "rest": 90}, {"slug": "romanian-deadlift", "sets": 3, "reps": "10", "rest": 75}, {"slug": "hip-thrust", "sets": 3, "reps": "12", "rest": 60}, {"slug": "leg-curl", "sets": 3, "reps": "12", "rest": 60}]},
-        {"title": "Üst vücut", "ex": [{"slug": "incline-dumbbell-press", "sets": 3, "reps": "10", "rest": 60}, {"slug": "lat-pulldown", "sets": 3, "reps": "12", "rest": 60}, {"slug": "overhead-press", "sets": 3, "reps": "10", "rest": 60}, {"slug": "tricep-pushdown", "sets": 3, "reps": "12", "rest": 45}]},
+        {
+            "title": "Tam vücut A",
+            "ex": [
+                {"slug": "goblet-squat", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "bench-press", "sets": 3, "reps": "10", "rest": 60},
+                {"slug": "lat-pulldown", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "plank", "sets": 3, "reps": "40 sn", "rest": 40},
+            ],
+        },
+        {
+            "title": "Tam vücut B",
+            "ex": [
+                {"slug": "leg-press", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "dumbbell-shoulder-press", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "seated-row", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "bicycle-crunch", "sets": 3, "reps": "20", "rest": 40},
+            ],
+        },
+        {
+            "title": "Alt vücut + Kalça",
+            "ex": [
+                {"slug": "squat", "sets": 3, "reps": "10", "rest": 90},
+                {"slug": "romanian-deadlift", "sets": 3, "reps": "10", "rest": 75},
+                {"slug": "hip-thrust", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "leg-curl", "sets": 3, "reps": "12", "rest": 60},
+            ],
+        },
+        {
+            "title": "Üst vücut",
+            "ex": [
+                {"slug": "incline-dumbbell-press", "sets": 3, "reps": "10", "rest": 60},
+                {"slug": "lat-pulldown", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "overhead-press", "sets": 3, "reps": "10", "rest": 60},
+                {"slug": "tricep-pushdown", "sets": 3, "reps": "12", "rest": 45},
+            ],
+        },
     ],
     "koru": [
-        {"title": "Tam vücut A", "ex": [{"slug": "squat", "sets": 3, "reps": "10", "rest": 90}, {"slug": "bench-press", "sets": 3, "reps": "10", "rest": 75}, {"slug": "lat-pulldown", "sets": 3, "reps": "12", "rest": 75}, {"slug": "plank", "sets": 3, "reps": "40 sn", "rest": 40}]},
-        {"title": "Tam vücut B", "ex": [{"slug": "leg-press", "sets": 3, "reps": "12", "rest": 75}, {"slug": "dumbbell-shoulder-press", "sets": 3, "reps": "12", "rest": 60}, {"slug": "seated-row", "sets": 3, "reps": "12", "rest": 60}, {"slug": "dumbbell-curl", "sets": 3, "reps": "12", "rest": 45}]},
-        {"title": "Tam vücut C", "ex": [{"slug": "romanian-deadlift", "sets": 3, "reps": "10", "rest": 75}, {"slug": "dips", "sets": 3, "reps": "10", "rest": 60}, {"slug": "pull-up", "sets": 3, "reps": "8", "rest": 75}, {"slug": "bicycle-crunch", "sets": 3, "reps": "20", "rest": 40}]},
+        {
+            "title": "Tam vücut A",
+            "ex": [
+                {"slug": "squat", "sets": 3, "reps": "10", "rest": 90},
+                {"slug": "bench-press", "sets": 3, "reps": "10", "rest": 75},
+                {"slug": "lat-pulldown", "sets": 3, "reps": "12", "rest": 75},
+                {"slug": "plank", "sets": 3, "reps": "40 sn", "rest": 40},
+            ],
+        },
+        {
+            "title": "Tam vücut B",
+            "ex": [
+                {"slug": "leg-press", "sets": 3, "reps": "12", "rest": 75},
+                {"slug": "dumbbell-shoulder-press", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "seated-row", "sets": 3, "reps": "12", "rest": 60},
+                {"slug": "dumbbell-curl", "sets": 3, "reps": "12", "rest": 45},
+            ],
+        },
+        {
+            "title": "Tam vücut C",
+            "ex": [
+                {"slug": "romanian-deadlift", "sets": 3, "reps": "10", "rest": 75},
+                {"slug": "dips", "sets": 3, "reps": "10", "rest": 60},
+                {"slug": "pull-up", "sets": 3, "reps": "8", "rest": 75},
+                {"slug": "bicycle-crunch", "sets": 3, "reps": "20", "rest": 40},
+            ],
+        },
     ],
 }
 CARDIO_FINISH = {"kilo_ver": "20 dk", "kas_yap": "10 dk", "koru": "15 dk"}
@@ -190,10 +551,19 @@ FOCUS = {"kas_yap": "kuvvet (split)", "kilo_ver": "kardiyo + kuvvet", "koru": "k
 
 def _resolve_exercise(e: dict, level: str, is_finisher: bool) -> dict[str, Any]:
     base = _BY_SLUG.get(e["slug"])
-    enriched = enrich(base) if base else {
-        "name_tr": e["slug"], "equipment": "-", "category": "kuvvet",
-        "primary_muscle": None, "secondary": [], "instructions": [], "machine_howto": None,
-    }
+    enriched = (
+        enrich(base)
+        if base
+        else {
+            "name_tr": e["slug"],
+            "equipment": "-",
+            "category": "kuvvet",
+            "primary_muscle": None,
+            "secondary": [],
+            "instructions": [],
+            "machine_howto": None,
+        }
+    )
     sets = e["sets"]
     if enriched["category"] == "kuvvet" and not is_finisher:
         if level == "beginner":
@@ -239,7 +609,11 @@ def build_plan(
 ) -> dict[str, Any]:
     pool = STRENGTH_POOLS.get(goal_type, STRENGTH_POOLS["koru"])
     n = max(1, min(6, days_per_week or 4))
-    td = training_days if (training_days and len(training_days) == n) else DEFAULT_DAYS.get(n, DEFAULT_DAYS[4])
+    td = (
+        training_days
+        if (training_days and len(training_days) == n)
+        else DEFAULT_DAYS.get(n, DEFAULT_DAYS[4])
+    )
     finish_reps = CARDIO_FINISH.get(goal_type, "15 dk")
     days = []
     for i in range(n):
@@ -254,14 +628,16 @@ def build_plan(
             c_min = int(finish_reps.split()[0])
         except (ValueError, IndexError):
             c_min = 12
-        days.append({
-            "day": td[i] if i < len(td) else DEFAULT_DAYS[4][i % 4],
-            "title": sess["title"],
-            "kind": "kuvvet+kardiyo",
-            "minutes": s_min + c_min,
-            "exercises": exercises,
-            "worked": _day_worked(strength),
-        })
+        days.append(
+            {
+                "day": td[i] if i < len(td) else DEFAULT_DAYS[4][i % 4],
+                "title": sess["title"],
+                "kind": "kuvvet+kardiyo",
+                "minutes": s_min + c_min,
+                "exercises": exercises,
+                "worked": _day_worked(strength),
+            }
+        )
     weekly = sum(d["minutes"] for d in days)
     return {
         "goal_type": goal_type,
