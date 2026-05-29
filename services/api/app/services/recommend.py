@@ -13,6 +13,7 @@ from ..schemas.recommendation import EnergyInfo, RecommendationRead, WorkoutSugg
 from .blacklist import blacklist_ids
 from .energy import compute_energy
 from .intake import daily_intake
+from .meal_reco import build_preference, score_recipes
 from .recipes import search_recipes
 
 # goal_type → (odak, haftalık dakika, gün planı)
@@ -74,13 +75,24 @@ async def build_recommendation(
         round(protein_target - intake.protein_g, 1) if protein_target is not None else None
     )
 
-    # Öğün önerileri — blacklist'e göre filtreli tarifler
+    # Öğün önerileri — içerik-tabanlı skor (kalori-uyum + protein + tercih affinity).
     blocked = await blacklist_ids(session, user.id)
     recipes = await search_recipes(session, None, blocked)
+    if remaining is not None and remaining > 0:
+        meal_target: float | None = remaining
+    elif target_kcal is not None:
+        meal_target = target_kcal / 3.0
+    else:
+        meal_target = None
+    pref = await build_preference(session, user.id)
+    scored = score_recipes(
+        recipes, pref, meal_target=meal_target, protein_remaining=protein_remaining
+    )
+    meal_suggestions = [r for r, _ in scored[:3]]
+    if pref:
+        notes.append("Öneriler geçmiş tercihlerine ve kalan kalorine göre sıralandı.")
     if protein_remaining is not None and protein_remaining > 20:
-        recipes.sort(key=lambda r: 0 if "protein" in r.tags else 1)
         notes.append("Protein açığı yüksek; protein ağırlıklı öğünler öne alındı.")
-    meal_suggestions = recipes[:3]
 
     # Antrenman
     gt = goal.goal_type if goal else "koru"
