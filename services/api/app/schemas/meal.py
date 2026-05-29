@@ -30,6 +30,14 @@ class MealCreate(BaseModel):
     items: list[MealItem] = Field(default_factory=list)
 
 
+class MealUpdate(BaseModel):
+    """Yemek güncelleme — tüm alanlar opsiyonel. items verilirse kalemler değişir."""
+
+    raw_text: str | None = None
+    meal_type: str | None = None
+    items: list[MealItem] | None = None
+
+
 class BarcodeMealCreate(BaseModel):
     """Barkod ile yemek ekleme (Open Food Facts ile besin değeri çekilir)."""
 
