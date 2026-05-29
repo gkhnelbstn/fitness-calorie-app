@@ -119,6 +119,43 @@ async def import_themealdb(
     return count
 
 
+async def import_themealdb_query(
+    session: AsyncSession, query_tr: str, *, do_translate: bool = True
+) -> int:
+    """Canlı arama: Türkçe sorguyu EN'e çevir, TheMealDB'de ada göre ara, idempotent import.
+
+    Çeviri kapalı/anahtarsızsa sorgu olduğu gibi gönderilir (İngilizce arama varsayımı).
+    Döner: yeni eklenen tarif sayısı.
+    """
+    adapter = TheMealDbAdapter()
+    translator = Translator()
+    query_en = await translator.to_english(query_tr) if do_translate else query_tr
+    meals = await adapter.search_by_name(query_en)
+    if not meals:
+        return 0
+    source = await get_or_create_source(
+        session, name="TheMealDB", url="https://www.themealdb.com", license_mode="atıf"
+    )
+    count = 0
+    for meal in meals:
+        ok = await _import_recipe(
+            session,
+            title=meal.get("strMeal", ""),
+            instructions=meal.get("strInstructions", ""),
+            area=meal.get("strArea"),
+            category=meal.get("strCategory"),
+            ingredients=TheMealDbAdapter.extract_ingredients(meal),
+            source_id=source.id,
+            translator=translator,
+            do_translate=do_translate,
+        )
+        if ok:
+            count += 1
+    await _recompute_kcal(session)
+    await session.commit()
+    return count
+
+
 async def import_spoonacular(
     session: AsyncSession, query: str, *, number: int = 10, do_translate: bool = True
 ) -> int:

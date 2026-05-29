@@ -1,6 +1,6 @@
-"""İngilizce → Türkçe çeviri (NVIDIA LLM). Anahtar yoksa metni aynen döndürür.
+"""NVIDIA LLM çeviri (TR↔EN). Anahtar yoksa metni aynen döndürür.
 
-Tarif/besin import'unda kullanılır. Sessiz fallback: hata/anahtarsız → orijinal.
+Tarif/besin import + canlı arama sorgusu için. Sessiz fallback: hata/anahtarsız → orijinal.
 """
 
 from __future__ import annotations
@@ -9,10 +9,15 @@ import httpx
 
 from ..config import get_settings
 
-_SYSTEM = (
+_SYS_TR = (
     "Sen profesyonel bir çevirmensin. Verilen İngilizce gıda/yemek metnini "
     "doğal, kısa Türkçeye çevir. SADECE çeviriyi döndür; açıklama, tırnak veya "
     "ek metin ekleme."
+)
+_SYS_EN = (
+    "You are a professional translator. Translate the given Turkish food/recipe "
+    "text into short, natural English. Return ONLY the translation; no quotes, "
+    "no explanation, no extra text."
 )
 
 
@@ -28,16 +33,17 @@ class Translator:
     def enabled(self) -> bool:
         return bool(self._key.strip())
 
-    async def to_turkish(self, text: str) -> str:
+    async def _translate(self, text: str, system: str, cache_prefix: str) -> str:
         text = text.strip()
         if not text or not self.enabled:
             return text
-        if text in self._cache:
-            return self._cache[text]
+        ck = f"{cache_prefix}:{text}"
+        if ck in self._cache:
+            return self._cache[ck]
         payload = {
             "model": self._model,
             "messages": [
-                {"role": "system", "content": _SYSTEM},
+                {"role": "system", "content": system},
                 {"role": "user", "content": text},
             ],
             "temperature": 0.1,
@@ -53,5 +59,11 @@ class Translator:
         except (httpx.HTTPError, KeyError, ValueError):
             return text
         result = out or text
-        self._cache[text] = result
+        self._cache[ck] = result
         return result
+
+    async def to_turkish(self, text: str) -> str:
+        return await self._translate(text, _SYS_TR, "tr")
+
+    async def to_english(self, text: str) -> str:
+        return await self._translate(text, _SYS_EN, "en")

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,10 +11,12 @@ from ..db import get_session
 from ..schemas.recipe import RecipeRead
 from ..security import require_token
 from ..services.blacklist import blacklist_ids
+from ..services.recipe_import import import_themealdb_query
 from ..services.recipes import cook_with, search_recipes
 from ..services.resolver import resolve_canonical
 from ..services.user import get_or_create_default_user
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/recipes", tags=["recipes"], dependencies=[Depends(require_token)])
 
 
@@ -31,9 +35,17 @@ async def search(
     exclude: list[str] = Query(default_factory=list, description="İstenmeyen malzemeler"),
     limit: int = Query(default=24, ge=1, le=100, description="Sayfa boyutu"),
     offset: int = Query(default=0, ge=0, description="Atlanacak kayıt"),
+    live: bool = Query(default=False, description="Web'de ara: TheMealDB'den canlı çek + içe al"),
     session: AsyncSession = Depends(get_session),
 ) -> list[RecipeRead]:
     user = await get_or_create_default_user(session)
+    # Canlı arama: q'yu EN'e çevir, TheMealDB'den çek, idempotent içe al (dedup),
+    # sonra yereli (artık zenginleşmiş) sorgula. İlk sayfada (offset 0) tetiklenir.
+    if live and q and q.strip() and offset == 0:
+        try:
+            await import_themealdb_query(session, q.strip())
+        except Exception:  # canlı kaynak hatası aramayı bozmasın
+            logger.warning("Canlı tarif aramada hata (q=%s)", q, exc_info=True)
     blocked = await blacklist_ids(session, user.id)
     blocked |= await _names_to_ids(session, exclude)
     return await search_recipes(session, q, blocked, limit=limit, offset=offset)

@@ -25,6 +25,14 @@ class TheMealDbAdapter:
             data = resp.json()
         return data.get("meals") or []
 
+    async def search_by_name(self, name: str) -> list[dict]:
+        url = f"{self._base}/search.php"
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(url, params={"s": name})
+            resp.raise_for_status()
+            data = resp.json()
+        return data.get("meals") or []
+
     @staticmethod
     def extract_ingredients(meal: dict) -> list[tuple[str, str]]:
         """(ingredient, measure) listesi — boş olanlar atlanır."""
