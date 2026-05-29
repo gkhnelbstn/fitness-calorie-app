@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../api.dart';
 import '../widgets/common.dart';
+import 'meal_edit_screen.dart';
 
 class MealsScreen extends StatefulWidget {
   final ApiClient api;
@@ -228,10 +229,10 @@ class _MealsScreenState extends State<MealsScreen> {
                 icon: const Icon(Icons.more_vert, size: 20),
                 onSelected: (v) {
                   if (v == 'sil') _deleteMeal(m['id'] as int);
-                  if (v == 'ogun') _editMealType(m);
+                  if (v == 'duzenle') _editMeal(m);
                 },
                 itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'ogun', child: Text('Öğün tipini değiştir')),
+                  PopupMenuItem(value: 'duzenle', child: Text('Düzenle')),
                   PopupMenuItem(value: 'sil', child: Text('Sil')),
                 ],
               ),
@@ -264,38 +265,11 @@ class _MealsScreenState extends State<MealsScreen> {
     }
   }
 
-  Future<void> _editMealType(Map m) async {
-    String? sel = m['meal_type'] as String?;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (c, setLocal) => AlertDialog(
-          title: const Text('Öğün tipi'),
-          content: DropdownButtonFormField<String>(
-            initialValue: sel,
-            items: const [
-              DropdownMenuItem(value: 'kahvalti', child: Text('Kahvaltı')),
-              DropdownMenuItem(value: 'ogle', child: Text('Öğle')),
-              DropdownMenuItem(value: 'aksam', child: Text('Akşam')),
-              DropdownMenuItem(value: 'atistirma', child: Text('Atıştırma')),
-            ],
-            onChanged: (v) => setLocal(() => sel = v),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('İptal')),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Kaydet')),
-          ],
-        ),
-      ),
+  Future<void> _editMeal(Map m) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => MealEditScreen(api: widget.api, meal: m)),
     );
-    if (ok == true && sel != null) {
-      try {
-        await widget.api.updateMeal(m['id'] as int, {'meal_type': sel});
-        _reload();
-      } catch (e) {
-        _snack('Hata: $e');
-      }
-    }
+    if (changed == true) _reload();
   }
 
   @override
