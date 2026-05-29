@@ -213,20 +213,89 @@ class _MealsScreenState extends State<MealsScreen> {
                 ],
               ),
             ),
-            if (kcal != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: t.colorScheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              if (kcal != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: t.colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text('${(kcal as num).toStringAsFixed(0)} kcal',
+                      style: TextStyle(color: t.colorScheme.primary, fontWeight: FontWeight.w700, fontSize: 12)),
                 ),
-                child: Text('${(kcal as num).toStringAsFixed(0)} kcal',
-                    style: TextStyle(color: t.colorScheme.primary, fontWeight: FontWeight.w700, fontSize: 12)),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20),
+                onSelected: (v) {
+                  if (v == 'sil') _deleteMeal(m['id'] as int);
+                  if (v == 'ogun') _editMealType(m);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'ogun', child: Text('Öğün tipini değiştir')),
+                  PopupMenuItem(value: 'sil', child: Text('Sil')),
+                ],
               ),
+            ]),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _deleteMeal(int id) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Yemeği sil'),
+        content: const Text('Bu kayıt silinsin mi?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('İptal')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Sil')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      try {
+        await widget.api.deleteMeal(id);
+        _reload();
+      } catch (e) {
+        _snack('Hata: $e');
+      }
+    }
+  }
+
+  Future<void> _editMealType(Map m) async {
+    String? sel = m['meal_type'] as String?;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, setLocal) => AlertDialog(
+          title: const Text('Öğün tipi'),
+          content: DropdownButtonFormField<String>(
+            initialValue: sel,
+            items: const [
+              DropdownMenuItem(value: 'kahvalti', child: Text('Kahvaltı')),
+              DropdownMenuItem(value: 'ogle', child: Text('Öğle')),
+              DropdownMenuItem(value: 'aksam', child: Text('Akşam')),
+              DropdownMenuItem(value: 'atistirma', child: Text('Atıştırma')),
+            ],
+            onChanged: (v) => setLocal(() => sel = v),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('İptal')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Kaydet')),
+          ],
+        ),
+      ),
+    );
+    if (ok == true && sel != null) {
+      try {
+        await widget.api.updateMeal(m['id'] as int, {'meal_type': sel});
+        _reload();
+      } catch (e) {
+        _snack('Hata: $e');
+      }
+    }
   }
 
   @override
