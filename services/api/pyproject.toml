@@ -37,6 +37,10 @@ select = ["E", "F", "I", "UP", "B"]
 # B008: FastAPI Depends/Query/Header'ı argüman varsayılanında çağırmak deyimseldir.
 ignore = ["B008"]
 
+[tool.ruff.lint.per-file-ignores]
+# Egzersiz kataloğu/havuzları uzun literal veri satırları — okunabilirlik için tek satır.
+"app/data/workouts.py" = ["E501"]
+
 [tool.ruff.format]
 docstring-code-format = true
 
