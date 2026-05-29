@@ -66,3 +66,52 @@ async def test_unknown_food_low_confidence(client, auth) -> None:
     item = body["items"][0]
     assert item["canonical_id"] is None
     assert item["confidence"] == 0.2
+
+
+async def test_update_meal_replaces_items(client, auth) -> None:
+    created = (
+        await client.post(
+            "/api/meals",
+            headers=auth,
+            json={"meal_type": "atistirma", "items": [{"raw_name": "ayran", "kcal": 60}]},
+        )
+    ).json()
+    mid = created["id"]
+    upd = await client.put(
+        f"/api/meals/{mid}",
+        headers=auth,
+        json={"meal_type": "kahvalti", "items": [{"raw_name": "süt", "kcal": 120}]},
+    )
+    assert upd.status_code == 200
+    body = upd.json()
+    assert body["meal_type"] == "kahvalti"
+    assert body["total_kcal"] == 120
+    assert len(body["items"]) == 1
+    assert body["items"][0]["raw_name"] == "süt"
+
+
+async def test_delete_meal(client, auth) -> None:
+    mid = (
+        await client.post(
+            "/api/meals", headers=auth, json={"items": [{"raw_name": "ayran", "kcal": 60}]}
+        )
+    ).json()["id"]
+    d = await client.delete(f"/api/meals/{mid}", headers=auth)
+    assert d.status_code == 204
+    day = __import__("datetime").date.today().isoformat()
+    listed = await client.get(f"/api/meals?date={day}", headers=auth)
+    assert all(m["id"] != mid for m in listed.json())
+
+
+async def test_update_missing_404(client, auth) -> None:
+    assert (
+        await client.put("/api/meals/999999", headers=auth, json={"meal_type": "kahvalti"})
+    ).status_code == 404
+
+
+async def test_delete_missing_404(client, auth) -> None:
+    assert (await client.delete("/api/meals/999999", headers=auth)).status_code == 404
+
+
+async def test_delete_requires_token(client) -> None:
+    assert (await client.delete("/api/meals/1")).status_code == 401

@@ -8,16 +8,18 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..adapters.openfoodfacts import OpenFoodFactsAdapter
 from ..config import get_settings
 from ..db import get_session
 from ..models import FoodProduct, MealLog, MealLogItem, NutritionProfile
-from ..schemas.meal import BarcodeMealCreate, MealCreate, MealItem, MealRead
+from ..schemas.meal import BarcodeMealCreate, MealCreate, MealItem, MealRead, MealUpdate
 from ..security import require_token
 from ..services.extract import extract_items
 from ..services.meal_items import build_meal_log_item as _build_item
@@ -277,3 +279,76 @@ async def list_meals(
             )
         )
     return out
+
+
+async def _meal_or_404(session: AsyncSession, meal_id: int, user_id: int) -> MealLog:
+    log = await session.get(MealLog, meal_id)
+    if log is None or log.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Yemek bulunamadı.")
+    return log
+
+
+@router.put("/{meal_id}", response_model=MealRead)
+async def update_meal(
+    meal_id: int, payload: MealUpdate, session: AsyncSession = Depends(get_session)
+) -> MealRead:
+    user = await get_or_create_default_user(session)
+    log = await _meal_or_404(session, meal_id, user.id)
+
+    if payload.meal_type is not None:
+        log.meal_type = payload.meal_type
+    if payload.raw_text is not None:
+        log.raw_text = payload.raw_text
+
+    if payload.items is not None:
+        await session.execute(delete(MealLogItem).where(MealLogItem.meal_log_id == log.id))
+        new_items: list[MealLogItem] = []
+        for i in payload.items:
+            if i.kcal is not None:
+                canon = await resolve_canonical(session, i.raw_name)
+                item = MealLogItem(
+                    meal_log_id=log.id,
+                    canonical_id=canon.id if canon else None,
+                    raw_name=i.raw_name,
+                    quantity=i.quantity,
+                    unit=i.unit,
+                    kcal=i.kcal,
+                    protein_g=i.protein_g,
+                    carb_g=i.carb_g,
+                    fat_g=i.fat_g,
+                    confidence=1.0,
+                )
+            else:
+                item = await _build_item(session, ParsedItem(i.raw_name, i.quantity, i.unit))
+                item.meal_log_id = log.id
+            session.add(item)
+            new_items.append(item)
+        log.total_kcal = sum((x.kcal or 0) for x in new_items) or None
+
+    await session.commit()
+
+    rows = (
+        (await session.execute(select(MealLogItem).where(MealLogItem.meal_log_id == log.id)))
+        .scalars()
+        .all()
+    )
+    return MealRead(
+        id=log.id,
+        eaten_at=log.eaten_at,
+        meal_type=log.meal_type,
+        raw_text=log.raw_text,
+        total_kcal=log.total_kcal,
+        items=[_to_schema_item(it) for it in rows],
+        photo_path=log.photo_path,
+    )
+
+
+@router.delete("/{meal_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_meal(meal_id: int, session: AsyncSession = Depends(get_session)) -> None:
+    user = await get_or_create_default_user(session)
+    result = await session.execute(
+        delete(MealLog).where(MealLog.id == meal_id, MealLog.user_id == user.id)
+    )
+    await session.commit()
+    if cast("CursorResult[Any]", result).rowcount == 0:
+        raise HTTPException(status_code=404, detail="Yemek bulunamadı.")
