@@ -607,7 +607,7 @@
     addMealPhoto: (payload, date) => request('POST', '/api/meals/photo', { query: { date }, body: payload }),
     updateMeal: (id, payload) => request('PUT', '/api/meals/' + id, { body: payload }),
     deleteMeal: (id) => request('DELETE', '/api/meals/' + id),
-    recipes: (q, exclude, offset, limit) => request('GET', '/api/recipes', { query: { q, exclude, offset, limit } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
+    recipes: (q, exclude, offset, limit, live) => request('GET', '/api/recipes', { query: { q, exclude, offset, limit, live: live ? 'true' : undefined } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
     cookWith: (have, exclude) => request('GET', '/api/recipes/cook-with', { query: { have, exclude } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
     blacklist: () => request('GET', '/api/blacklist'),
     addBlacklist: (name) => request('POST', '/api/blacklist', { body: { name } }),

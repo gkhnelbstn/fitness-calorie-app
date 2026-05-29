@@ -104,6 +104,42 @@ async def test_import_usda(client, auth) -> None:
     assert resp.json()["imported"] == 1
 
 
+@respx.mock
+async def test_live_recipe_search(client, auth) -> None:
+    # /api/recipes?live=true → TheMealDB search.php?s=... → idempotent import → yerel sonuç
+    respx.get(f"{S.themealdb_base_url}/search.php").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "meals": [
+                    {
+                        "strMeal": "Shakshuka",
+                        "strInstructions": "Cook.",
+                        "strArea": "Egyptian",
+                        "strCategory": "Breakfast",
+                        "strIngredient1": "Egg",
+                        "strMeasure1": "3",
+                    }
+                ]
+            },
+        )
+    )
+    # NVIDIA kapalı → translate identity → q 'shakshuka' EN olarak gider, başlık EN kalır
+    resp = await client.get("/api/recipes?q=shakshuka&live=true", headers=auth)
+    assert resp.status_code == 200
+    slugs = {r["slug"] for r in resp.json()}
+    assert "shakshuka" in slugs
+
+
+@respx.mock
+async def test_live_search_no_match_graceful(client, auth) -> None:
+    respx.get(f"{S.themealdb_base_url}/search.php").mock(
+        return_value=httpx.Response(200, json={"meals": None})
+    )
+    resp = await client.get("/api/recipes?q=bilinmeyenxyz&live=true", headers=auth)
+    assert resp.status_code == 200  # sonuç yok ama hata vermez
+
+
 async def test_import_spoonacular_no_key(client, auth) -> None:
     resp = await client.post("/api/admin/import/spoonacular?query=soup", headers=auth)
     assert resp.status_code == 400

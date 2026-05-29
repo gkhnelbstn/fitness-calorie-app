@@ -78,6 +78,7 @@ function RecipesScreen({ demoState }) {
   const [q, setQ] = useStateR('');
   const [exclude, setExclude] = useStateR([]);
   const [have, setHave] = useStateR(['bulgur', 'soğan']);
+  const [webSearch, setWebSearch] = useStateR(false);
 
   // "Tarif ara" sekmesi sayfalı (load-more). Filtre değişince sıfırlanır.
   const [sItems, setSItems] = useStateR([]);
@@ -91,7 +92,8 @@ function RecipesScreen({ demoState }) {
     setSLoading(true);
     setSError(null);
     try {
-      const r = await API.recipes(q, exclude, off, RECIPES_PAGE);
+      // Canlı arama yalnız ilk sayfada (off=0) — sonraki sayfalar yerelden.
+      const r = await API.recipes(q, exclude, off, RECIPES_PAGE, webSearch && off === 0);
       const newItems = r.items || [];
       setSItems(reset ? newItems : (prev) => [...prev, ...newItems]);
       setSHidden(r.hidden || []);
@@ -107,7 +109,7 @@ function RecipesScreen({ demoState }) {
   useEffectR(() => {
     if (tab === 'ara') fetchRecipes(0, true);
     // eslint-disable-next-line
-  }, [q, exclude.join(','), tab]);
+  }, [q, exclude.join(','), tab, webSearch]);
 
   const cook = useResource(() => API.cookWith(have, exclude), [have.join(','), exclude.join(',')]);
 
@@ -137,7 +139,13 @@ function RecipesScreen({ demoState }) {
 
       <div className="flex flex-col gap-3">
         {tab === 'ara'
-          ? <div className="relative"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"><Icon name="search" size={18} /></span><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tarif, bölge ya da etiket ara… (ör. köfte, vegan)" className="pl-11" /></div>
+          ? <div className="flex flex-col gap-2">
+              <div className="relative"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"><Icon name="search" size={18} /></span><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tarif, bölge ya da etiket ara… (ör. köfte, vegan)" className="pl-11" /></div>
+              <label className="flex items-center gap-2 text-sm text-muted cursor-pointer select-none">
+                <input type="checkbox" checked={webSearch} onChange={(e) => setWebSearch(e.target.checked)} className="accent-[var(--accent)] h-4 w-4" />
+                Web'de ara (TheMealDB) — sonuçlar Türkçeye çevrilip kaydedilir
+              </label>
+            </div>
           : <Field label="Elimdeki malzemeler" hint="Enter ile ekle. En çok eşleşen tarifler üstte."><ChipInput items={have} setItems={setHave} placeholder="malzeme yaz…" color="var(--accent)" /></Field>}
         <Field label="İstenmeyen malzeme" hint="Kara listenle birlikte bu malzemeleri içeren tarifler gizlenir.">
           <ChipInput items={exclude} setItems={setExclude} placeholder="ör. yer fıstığı, laktoz…" color="var(--c-carb)" />
