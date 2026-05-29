@@ -282,6 +282,23 @@ class WorkoutTemplate(TimestampMixin, Base):
     raw_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
+class WorkoutLog(TimestampMixin, Base):
+    """Kullanıcının yaptığı antrenman kaydı (gün bazlı)."""
+
+    __tablename__ = "workout_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user_profile.id", ondelete="CASCADE"))
+    day: Mapped[str] = mapped_column(String(10), index=True)  # YYYY-MM-DD
+    template_slug: Mapped[str] = mapped_column(String(96))
+    name_tr: Mapped[str] = mapped_column(String(160))
+    sets: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reps: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    minutes: Mapped[int] = mapped_column(Integer, default=30)
+    kcal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    done: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
 class WorkoutRecommendation(TimestampMixin, Base):
     __tablename__ = "workout_recommendation"
 

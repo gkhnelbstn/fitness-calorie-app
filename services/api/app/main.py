@@ -17,6 +17,7 @@ from .routers import (
     recipes,
     recommendations,
     summary,
+    workouts,
 )
 
 settings = get_settings()
@@ -45,6 +46,7 @@ app.include_router(profile.router)
 app.include_router(recommendations.router)
 app.include_router(meal_plans.router)
 app.include_router(admin.router)
+app.include_router(workouts.router)
 
 
 @app.get("/", tags=["root"])
