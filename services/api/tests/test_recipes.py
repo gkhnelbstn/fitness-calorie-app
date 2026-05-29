@@ -6,26 +6,36 @@ async def _slugs(resp) -> set[str]:
 
 
 async def test_search_all(client, auth) -> None:
-    resp = await client.get("/api/recipes", headers=auth)
+    # Tüm sayfayı al (geniş limit). Çekirdek + geniş set seed'li.
+    resp = await client.get("/api/recipes?limit=100", headers=auth)
     assert resp.status_code == 200
     slugs = await _slugs(resp)
     assert {
         "menemen",
         "cacik",
         "mercimek-corbasi",
-        "izmir-koftesi",
-        "ezogelin-corbasi",
-        "kisir",
-        "omlet",
-        "coban-salatasi",
-        "haslanmis-tavuk",
+        "lahmacun",
+        "imam-bayildi",
+        "firinda-somon",
     } <= slugs
-    assert len(slugs) == 12
+    assert len(slugs) >= 40
+
+
+async def test_pagination(client, auth) -> None:
+    page1 = (await client.get("/api/recipes?limit=10&offset=0", headers=auth)).json()
+    page2 = (await client.get("/api/recipes?limit=10&offset=10", headers=auth)).json()
+    assert len(page1) == 10
+    assert len(page2) == 10
+    s1 = {r["slug"] for r in page1}
+    s2 = {r["slug"] for r in page2}
+    assert not (s1 & s2)  # sayfalar çakışmaz
 
 
 async def test_search_query_filter(client, auth) -> None:
     resp = await client.get("/api/recipes?q=menemen", headers=auth)
-    assert await _slugs(resp) == {"menemen"}
+    slugs = await _slugs(resp)
+    assert "menemen" in slugs
+    assert all("menemen" in s for s in slugs)  # hepsi menemen varyantı
 
 
 async def test_exclude_nonoptional_removes_recipe(client, auth) -> None:

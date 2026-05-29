@@ -29,12 +29,14 @@ async def _names_to_ids(session: AsyncSession, names: list[str]) -> set[int]:
 async def search(
     q: str | None = Query(default=None, description="Başlık arama"),
     exclude: list[str] = Query(default_factory=list, description="İstenmeyen malzemeler"),
+    limit: int = Query(default=24, ge=1, le=100, description="Sayfa boyutu"),
+    offset: int = Query(default=0, ge=0, description="Atlanacak kayıt"),
     session: AsyncSession = Depends(get_session),
 ) -> list[RecipeRead]:
     user = await get_or_create_default_user(session)
     blocked = await blacklist_ids(session, user.id)
     blocked |= await _names_to_ids(session, exclude)
-    return await search_recipes(session, q, blocked)
+    return await search_recipes(session, q, blocked, limit=limit, offset=offset)
 
 
 @router.get("/cook-with", response_model=list[RecipeRead])

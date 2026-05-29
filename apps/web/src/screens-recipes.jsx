@@ -1,5 +1,6 @@
 // screens-recipes.jsx — TARİFLER (detaylı: porsiyon/makro, etiket, not, cook-with)
-const { useState: useStateR } = React;
+const { useState: useStateR, useEffect: useEffectR } = React;
+const RECIPES_PAGE = 24;
 
 function ChipInput({ items, setItems, placeholder, color }) {
   const [val, setVal] = useStateR('');
@@ -78,14 +79,53 @@ function RecipesScreen({ demoState }) {
   const [exclude, setExclude] = useStateR([]);
   const [have, setHave] = useStateR(['bulgur', 'soğan']);
 
-  const search = useResource(() => API.recipes(q, exclude), [q, exclude.join(',')]);
+  // "Tarif ara" sekmesi sayfalı (load-more). Filtre değişince sıfırlanır.
+  const [sItems, setSItems] = useStateR([]);
+  const [sHidden, setSHidden] = useStateR([]);
+  const [sOffset, setSOffset] = useStateR(0);
+  const [sHasMore, setSHasMore] = useStateR(false);
+  const [sLoading, setSLoading] = useStateR(false);
+  const [sError, setSError] = useStateR(null);
+
+  const fetchRecipes = async (off, reset) => {
+    setSLoading(true);
+    setSError(null);
+    try {
+      const r = await API.recipes(q, exclude, off, RECIPES_PAGE);
+      const newItems = r.items || [];
+      setSItems(reset ? newItems : (prev) => [...prev, ...newItems]);
+      setSHidden(r.hidden || []);
+      setSHasMore(newItems.length === RECIPES_PAGE);
+      setSOffset(off + newItems.length);
+    } catch (e) {
+      setSError(String((e && e.message) || e));
+    } finally {
+      setSLoading(false);
+    }
+  };
+
+  useEffectR(() => {
+    if (tab === 'ara') fetchRecipes(0, true);
+    // eslint-disable-next-line
+  }, [q, exclude.join(','), tab]);
+
   const cook = useResource(() => API.cookWith(have, exclude), [have.join(','), exclude.join(',')]);
-  const active = tab === 'ara' ? search : cook;
-  const loading = demoState === 'loading' || active.loading;
-  const error = demoState === 'error' ? 'Tarifler getirilemedi.' : active.error;
-  const data = demoState === 'empty' ? { items: [], hidden: [] } : (active.data || { items: [], hidden: [] });
-  const list = data.items || [];
-  const hidden = data.hidden || [];
+
+  let loading, error, list, hidden, hasMore;
+  if (tab === 'ara') {
+    loading = demoState === 'loading' || (sLoading && sItems.length === 0);
+    error = demoState === 'error' ? 'Tarifler getirilemedi.' : sError;
+    list = demoState === 'empty' ? [] : sItems;
+    hidden = demoState === 'empty' ? [] : sHidden;
+    hasMore = sHasMore && demoState !== 'empty';
+  } else {
+    loading = demoState === 'loading' || cook.loading;
+    error = demoState === 'error' ? 'Tarifler getirilemedi.' : cook.error;
+    const data = demoState === 'empty' ? { items: [], hidden: [] } : (cook.data || { items: [], hidden: [] });
+    list = data.items || [];
+    hidden = data.hidden || [];
+    hasMore = false;
+  }
   const blHidden = hidden.filter((h) => h.kind === 'blacklist');
   const exHidden = hidden.filter((h) => h.kind === 'exclude');
 
@@ -122,7 +162,14 @@ function RecipesScreen({ demoState }) {
             )}
             {list.length === 0
               ? <Card className="p-2"><EmptyState icon="recipes" title={hidden.length ? 'Uygun tarif kalmadı' : (tab === 'ara' ? 'Tarif bulunamadı' : 'Eşleşen tarif yok')} hint={hidden.length ? 'Tüm sonuçlar kara liste/istenmeyen malzeme nedeniyle gizlendi.' : (tab === 'ara' ? 'Farklı bir arama dene.' : 'Elindeki malzemeleri ekleyince uygun tarifleri göstereceğiz.')} /></Card>
-              : <div className="grid gap-4 lg:grid-cols-2">{list.map((r) => <RecipeCard key={r.id} recipe={r} defaultOpen={list.length === 1} />)}</div>}
+              : <>
+                  <div className="grid gap-4 lg:grid-cols-2">{list.map((r, i) => <RecipeCard key={r.id != null ? r.id : (r.slug || i)} recipe={r} defaultOpen={list.length === 1} />)}</div>
+                  {hasMore && (
+                    <button onClick={() => fetchRecipes(sOffset, false)} disabled={sLoading} className="fr mx-auto mt-4 inline-flex items-center gap-2 rounded-xl bordered surface px-5 py-3 text-sm font-semibold hover:bg-[var(--surface-2)] disabled:opacity-60">
+                      {sLoading ? 'Yükleniyor…' : 'Daha fazla tarif'}<Icon name="chevronD" size={16} />
+                    </button>
+                  )}
+                </>}
           </>
         )}
     </div>
