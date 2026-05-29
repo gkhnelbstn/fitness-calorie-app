@@ -230,4 +230,6 @@ coverage.xml
 .mypy_cache/
 .ruff_cache/
 
-data/
+# Yüklenen foto dizini (upload_dir). Kod paketi app/data ignore edilmemeli.
+/data/
+services/api/data/
