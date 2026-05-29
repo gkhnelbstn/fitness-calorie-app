@@ -114,8 +114,18 @@ async def adapt_recipe(
 
 
 async def search_recipes(
-    session: AsyncSession, q: str | None, blocked: set[int]
+    session: AsyncSession,
+    q: str | None,
+    blocked: set[int],
+    *,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[RecipeRead]:
+    """Tarif araması + blacklist adaptasyonu + pagination.
+
+    Adaptasyon bazı tarifleri eleyebildiği için sayfalama, uyarlanmış sonuç
+    listesi üzerinde uygulanır (ölçek küçük: yüzlerce tarif).
+    """
     stmt = select(Recipe)
     if q:
         # Türkçe karakterler için: slug (ascii) + lower(title) eşleşmesi (OR).
@@ -131,7 +141,9 @@ async def search_recipes(
         adapted = await adapt_recipe(session, rc, blocked)
         if adapted is not None:
             out.append(adapted)
-    return out
+    if limit is not None:
+        return out[offset : offset + limit]
+    return out[offset:] if offset else out
 
 
 async def cook_with(session: AsyncSession, have: set[int], blocked: set[int]) -> list[RecipeRead]:

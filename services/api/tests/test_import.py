@@ -56,7 +56,7 @@ async def test_import_themealdb_idempotent(client, auth) -> None:
             json={
                 "meals": [
                     {
-                        "strMeal": "Lahmacun",
+                        "strMeal": "Zzztest Yemek",
                         "strInstructions": "Bake.",
                         "strArea": "Turkish",
                         "strCategory": "Main",

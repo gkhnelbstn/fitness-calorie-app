@@ -486,7 +486,9 @@
         else if (exHit) hidden.push({ title_tr: r.title_tr, reason: cap(exHit), kind: 'exclude' });
         else items.push(r);
       });
-      return { items, hidden };
+      const off = parseInt(query.offset) || 0;
+      const lim = parseInt(query.limit) || 24;
+      return { items: items.slice(off, off + lim), hidden, total: items.length };
     }
     if (path === '/api/recipes/cook-with') {
       const have = [].concat(query.have || []).join(',').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
@@ -605,7 +607,7 @@
     addMealPhoto: (payload, date) => request('POST', '/api/meals/photo', { query: { date }, body: payload }),
     updateMeal: (id, payload) => request('PUT', '/api/meals/' + id, { body: payload }),
     deleteMeal: (id) => request('DELETE', '/api/meals/' + id),
-    recipes: (q, exclude) => request('GET', '/api/recipes', { query: { q, exclude } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
+    recipes: (q, exclude, offset, limit) => request('GET', '/api/recipes', { query: { q, exclude, offset, limit } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
     cookWith: (have, exclude) => request('GET', '/api/recipes/cook-with', { query: { have, exclude } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
     blacklist: () => request('GET', '/api/blacklist'),
     addBlacklist: (name) => request('POST', '/api/blacklist', { body: { name } }),
