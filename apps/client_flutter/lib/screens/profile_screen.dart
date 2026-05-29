@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import 'goal_wizard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final ApiClient api;
@@ -111,6 +112,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         TextField(controller: _targetProtein, decoration: const InputDecoration(labelText: 'Hedef protein g (opsiyonel — boşsa 1.6 g/kg)'), keyboardType: TextInputType.number),
         const SizedBox(height: 24),
         FilledButton.icon(onPressed: _save, icon: const Icon(Icons.save), label: const Text('Kaydet')),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final changed = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(builder: (_) => GoalWizardScreen(api: widget.api)),
+            );
+            if (changed == true) _load();
+          },
+          icon: const Icon(Icons.auto_awesome),
+          label: const Text('Hedef sihirbazı'),
+        ),
       ],
     );
   }
