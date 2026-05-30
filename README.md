@@ -2,13 +2,15 @@
 
 Türkçe beslenme & fitness koçu — doğal dilde yemek girişi, kara liste malzeme filtresi, Türkçe/bölgesel tarif önerisi ve aktivite tabanlı enerji dengesi. **Free-first** mimari (tek kullanıcı).
 
-Tasarım: [`docs/DESIGN.md`](docs/DESIGN.md). Mevcut durum: **Faz 0 — backend iskeleti**.
+Tasarım: [`docs/DESIGN.md`](docs/DESIGN.md).
+
+**Ön yüz kararı:** Tek ön yüz = **React `apps/web`** (Claude Design çıktısı). Flutter denemesi emekliye ayrıldı (git geçmişinde). Gerekçe: tek kod tabanı = düşük bakım; tasarım hazır; Claude Code ile düz JSX düzenlemesi hızlı. Mobil gerekirse PWA.
 
 ## Monorepo yapısı
 
 ```
-apps/client_flutter/   # Flutter web+mobil (Faz 4)
-services/api/          # FastAPI backend (aktif)
+apps/web/              # React (UMD) + Tailwind + Babel CDN — ürün ön yüzü
+services/api/          # FastAPI backend
 services/worker/       # arka plan işleri / seed (sonra)
 packages/contracts/    # OpenAPI/DTO/canonical modeller
 packages/domain/       # iş kuralları (blacklist, ikame)
@@ -17,6 +19,14 @@ infra/ci/              # CI yardımcıları
 db/seeds/              # seed verileri (TurKomp, free-exercise-db…)
 docs/                  # DESIGN.md, ADR'ler
 ```
+
+## Ön yüzü çalıştırma (apps/web)
+
+```powershell
+cd apps/web
+python -m http.server 5500   # http://localhost:5500
+```
+⚙️ Ayarlar → "Canlı backend" aç, `baseUrl=http://localhost:8000`, `token=<API_TOKEN>` (varsayılan `dev-local-token`). Tarifler'de "Web'de ara" toggle → TheMealDB'den çok çeşit getirir. Detay: [`apps/web/README.md`](apps/web/README.md).
 
 Bağımlılık yönetimi: [**uv**](https://docs.astral.sh/uv/). Kurulu değilse:
 ```powershell
@@ -54,6 +64,6 @@ CI/CD: [`.github/workflows/cicd.yml`](.github/workflows/cicd.yml) — lint+type,
 
 ## Notlar
 
-- Health Connect cihaz-üstü Android API'sidir; backend onu çağırmaz (bkz. DESIGN §2.1). Mobil + sağlık verisi Faz 4.
+- Ön yüz tek: `apps/web` (React). Mobil gerekirse PWA; Health Connect (ileride) UI'dan bağımsız, backend'e veri basan ayrı native modül olur.
 - LLM (NVIDIA) yalnızca doğal dil **normalizasyonu** yapar; kalori/makro her zaman yapılandırılmış kaynaktan gelir. Anahtar yoksa kurallı parser'a düşülür.
 - `.env` repoya **girmez**. Tüm dış kaynaklar (Open Food Facts, USDA, free-exercise-db) ücretsizdir.

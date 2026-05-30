@@ -233,3 +233,10 @@ coverage.xml
 # Yüklenen foto dizini (upload_dir). Kod paketi app/data ignore edilmemeli.
 /data/
 services/api/data/
+
+# Flutter/Dart build artefactları (ön yüz React'e taşındı; emniyet için)
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/*.iml
+**/build/
