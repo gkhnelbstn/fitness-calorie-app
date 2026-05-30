@@ -7,12 +7,20 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import UserGoal
-from ..schemas.profile import GoalRead, GoalUpdate, ProfileRead, ProfileUpdate
+from ..models import UserGoal, UserPreference
+from ..schemas.profile import (
+    GoalPlanUpdate,
+    GoalRead,
+    GoalUpdate,
+    ProfileRead,
+    ProfileUpdate,
+)
 from ..security import require_token
 from ..services.user import get_or_create_default_user
 
 router = APIRouter(prefix="/api", tags=["profile"], dependencies=[Depends(require_token)])
+
+PLAN_PREF_KEY = "goal_plan"
 
 
 def _profile_read(user) -> ProfileRead:
@@ -74,6 +82,48 @@ async def get_goal(session: AsyncSession = Depends(get_session)) -> GoalRead:
         target_protein_g=goal.target_protein_g,
         active=goal.active,
     )
+
+
+async def _plan_pref(session: AsyncSession, user_id: int) -> UserPreference | None:
+    return (
+        (
+            await session.execute(
+                select(UserPreference).where(
+                    UserPreference.user_id == user_id,
+                    UserPreference.key == PLAN_PREF_KEY,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+
+
+@router.get("/goal/plan")
+async def get_goal_plan(session: AsyncSession = Depends(get_session)) -> dict | None:
+    """Kayıtlı hedef/antrenman planını döndür (yoksa null)."""
+    user = await get_or_create_default_user(session)
+    pref = await _plan_pref(session, user.id)
+    value = pref.value if pref else None
+    return value if isinstance(value, dict) else None
+
+
+@router.put("/goal/plan")
+async def set_goal_plan(
+    payload: GoalPlanUpdate, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Planı kısmi güncelle: gelen alanlar mevcut planla birleştirilir."""
+    user = await get_or_create_default_user(session)
+    pref = await _plan_pref(session, user.id)
+    incoming = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
+    current = pref.value if pref and isinstance(pref.value, dict) else {}
+    merged = {**current, **incoming}
+    if pref:
+        pref.value = merged
+    else:
+        session.add(UserPreference(user_id=user.id, key=PLAN_PREF_KEY, value=merged))
+    await session.commit()
+    return merged
 
 
 @router.put("/goal", response_model=GoalRead, status_code=status.HTTP_201_CREATED)

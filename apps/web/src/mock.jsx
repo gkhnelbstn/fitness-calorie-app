@@ -1,7 +1,7 @@
 // mock.jsx — Backend sözleşmesine (gkhnelbstn/fitness-calorie-app) hizalı mock + API.
 // Canlı backend açıksa gerçek FastAPI'ye fetch (Bearer); kapalıysa localStorage mock.
 // Şema alan adları backend ile birebir: sex, activity_level(EN), title_tr, status, canonical_id...
-// "ÖNERİ" etiketli uçlar backend'de henüz yok; eklenmesi önerilir (docs/backend-contract.md).
+// Tüm uçların backend karşılığı mevcut (meals PUT/DELETE, goal/plan, workout* dahil).
 (function () {
   const LS = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
@@ -460,7 +460,7 @@
       const meal = { id: Date.now(), eaten_at: isoAt(date, new Date().getHours(), new Date().getMinutes()), meal_type: body.meal_type || guessMealType(), raw_text: body.raw_text || 'Fotoğraftan öğün', total_kcal: total, photo_path: 'uploads/' + Date.now() + '.jpg', items };
       s.meals[date] = [...(s.meals[date] || []), meal]; saveStore(s); return meal;
     }
-    // ÖNERİ: PUT/DELETE meals
+    // PUT/DELETE meals (backend: meals.py)
     if (path.startsWith('/api/meals/') && method === 'PUT') {
       const id = Number(path.split('/').pop());
       Object.keys(s.meals).forEach((k) => { s.meals[k] = s.meals[k].map((m) => m.id === id ? { ...m, ...body, total_kcal: Math.round((body.items || m.items).reduce((a, i) => a + (i.kcal || 0), 0)) || null } : m); });
@@ -523,7 +523,7 @@
     if (path === '/api/profile' && method === 'PUT') { s.profile = { ...s.profile, ...body }; saveStore(s); return s.profile; }
     if (path === '/api/goal' && method === 'GET') { if (!s.goal) throw new Error('Aktif hedef yok.'); return s.goal; }
     if (path === '/api/goal' && method === 'PUT') { s.goal = { ...s.goal, ...body, active: true, id: (s.goal && s.goal.id) || 1 }; saveStore(s); return s.goal; }
-    // ÖNERİ: hedef planı (kilo sihirbazı) saklama
+    // hedef planı (kilo sihirbazı) — backend: profile.py /goal/plan (UserPreference)
     if (path === '/api/goal/plan' && method === 'PUT') { s.plan = { ...s.plan, ...body }; saveStore(s); return s.plan; }
     if (path === '/api/goal/plan' && method === 'GET') return s.plan || null;
 
