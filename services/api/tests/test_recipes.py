@@ -10,9 +10,7 @@ async def test_search_all(client, auth) -> None:
     slugs: set[str] = set()
     offset = 0
     while offset <= 500:
-        page = (
-            await client.get(f"/api/recipes?limit=100&offset={offset}", headers=auth)
-        ).json()
+        page = (await client.get(f"/api/recipes?limit=100&offset={offset}", headers=auth)).json()
         if not page:
             break
         slugs |= {r["slug"] for r in page}
