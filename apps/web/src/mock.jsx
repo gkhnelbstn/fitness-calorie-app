@@ -387,6 +387,22 @@
   }
 
   function guessMealType() { const h = new Date().getHours(); return h < 11 ? 'kahvalti' : h < 15 ? 'ogle' : h < 18 ? 'ara' : 'aksam'; }
+
+  // ---------- Porsiyon (ölçü → gram → kcal) ----------
+  const MEASURE_G = { porsiyon: 250, tabak: 300, kase: 250, 'su bardağı': 200, 'çay bardağı': 100, dilim: 30, adet: 50, 'yemek kaşığı': 15, 'tatlı kaşığı': 7, avuç: 30 };
+  const PORTION_PER100 = { pilav: 130, bulgur: 130, makarna: 160, ekmek: 265, tavuk: 165, 'köfte': 290, kofte: 290, 'çorba': 55, corba: 55, mercimek: 55, yumurta: 155, ayran: 40, 'yoğurt': 60, yogurt: 60, salata: 35, somon: 200, muz: 89, elma: 52, 'döner': 200, doner: 200, lahmacun: 230, pide: 270, menemen: 130, omlet: 155, peynir: 260, zeytin: 130, kola: 42, kahve: 2, baklava: 430, simit: 330 };
+  function mockPortions(name) {
+    const n = (name || '').toLowerCase();
+    let per = null;
+    for (const k in PORTION_PER100) { if (n.includes(k)) { per = PORTION_PER100[k]; break; } }
+    let measures = ['porsiyon', 'tabak', 'kase', 'adet', 'yemek kaşığı'];
+    if (/ayran|kola|kahve|süt|sut/.test(n)) measures = ['su bardağı', 'çay bardağı'];
+    else if (/çorba|corba|mercimek/.test(n)) measures = ['kase', 'tabak', 'porsiyon'];
+    else if (/ekmek|simit/.test(n)) measures = ['dilim', 'adet'];
+    const portions = measures.map((m) => ({ measure: m, grams: MEASURE_G[m], kcal: per != null ? Math.round(per * MEASURE_G[m] / 100) : null }));
+    return { name, canonical_id: per != null ? 1 : null, matched: per != null, default_measure: measures[0], portions };
+  }
+
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const delay = () => wait(340 + Math.random() * 360);
 
@@ -425,6 +441,19 @@
       if (protein_remaining != null && protein_remaining > 20) recs.sort((a, b) => (a.tags.includes('protein') ? 0 : 1) - (b.tags.includes('protein') ? 0 : 1));
       const meal_suggestions = recs.slice(0, 3);
 
+      // Porsiyon tavsiyesi: kalan kcal'e göre her öneri için ~kaç porsiyon (0.5 adımlı).
+      const meal_target = remaining != null && remaining > 0 ? remaining : (target_kcal != null ? target_kcal / 3 : null);
+      const serving_suggestions = [];
+      if (meal_target && meal_target > 0) {
+        meal_suggestions.forEach((r) => {
+          const ps = r.macros_per_serving && r.macros_per_serving.kcal;
+          if (ps && ps > 0) {
+            const nserv = Math.max(0.5, Math.round((meal_target / ps) * 2) / 2);
+            serving_suggestions.push({ recipe_slug: r.slug, recipe_title: r.title_tr, per_serving_kcal: ps, recommended_servings: nserv, total_kcal: Math.round(ps * nserv) });
+          }
+        });
+      }
+
       const w = WORKOUT_BY_GOAL[s.goal.goal_type] || WORKOUT_BY_GOAL.koru;
       const notes = [];
       if (target_kcal == null) notes.push('Kalori hedefi hesaplanamadı; profil ve hedefini doldur.');
@@ -436,9 +465,12 @@
         id: s.recId, day: date,
         energy: energy ? { bmr: energy.bmr, tdee: energy.tdee, target_kcal, intake_kcal: Math.round(intake), remaining_kcal: remaining, protein_target_g: protein_target, protein_intake_g: Math.round(intakeP), protein_remaining_g: protein_remaining }
           : { bmr: null, tdee: null, target_kcal, intake_kcal: Math.round(intake), remaining_kcal: remaining, protein_target_g: protein_target, protein_intake_g: Math.round(intakeP), protein_remaining_g: protein_remaining },
-        meal_suggestions, workout: { focus: w.focus, weekly_minutes: w.weekly_minutes, days: w.days, note: WHO_NOTE }, notes,
+        meal_suggestions, serving_suggestions, workout: { focus: w.focus, weekly_minutes: w.weekly_minutes, days: w.days, note: WHO_NOTE }, notes,
       };
     }
+
+    // -- foods / porsiyon --
+    if (path === '/api/foods/portions') return mockPortions(query.name || '');
 
     // -- meals --
     if (path === '/api/meals' && method === 'GET') return (s.meals[date] || []).slice().sort((a, b) => a.eaten_at < b.eaten_at ? 1 : -1);
@@ -609,6 +641,7 @@
     deleteMeal: (id) => request('DELETE', '/api/meals/' + id),
     recipes: (q, exclude, offset, limit, live) => request('GET', '/api/recipes', { query: { q, exclude, offset, limit, live: live ? 'true' : undefined } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
     cookWith: (have, exclude) => request('GET', '/api/recipes/cook-with', { query: { have, exclude } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
+    foodPortions: (name) => request('GET', '/api/foods/portions', { query: { name } }),
     blacklist: () => request('GET', '/api/blacklist'),
     addBlacklist: (name) => request('POST', '/api/blacklist', { body: { name } }),
     deleteBlacklist: (canonicalId) => request('DELETE', '/api/blacklist/' + canonicalId),

@@ -129,6 +129,7 @@ function EnergyCard({ energy, plan, onOpenWizard }) {
 
 function RecCard({ rec, onGoWorkout, onGoRecipes }) {
   const w = rec.workout;
+  const servBySlug = Object.fromEntries((rec.serving_suggestions || []).map((s) => [s.recipe_slug, s]));
   return (
     <Card className="p-5 sm:p-6 flex flex-col gap-5">
       <div className="flex items-center gap-2.5"><span className="grid place-items-center h-9 w-9 rounded-xl" style={{ background: 'var(--accent-soft)', color: 'var(--accent-text)' }}><Icon name="sparkles" size={18} /></span><h3 className="font-display font-semibold text-lg">Günün önerisi</h3></div>
@@ -137,13 +138,17 @@ function RecCard({ rec, onGoWorkout, onGoRecipes }) {
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2 text-sm font-semibold"><Icon name="utensils" size={16} className="text-accent-text" />Sana uygun öğünler</div>
           <div className="flex flex-col gap-2">
-            {rec.meal_suggestions.slice(0, 3).map((r) => (
-              <button key={r.id} onClick={onGoRecipes} className="fr flex items-center gap-3 rounded-xl surface-2 px-3 py-2.5 text-left hover:bg-[var(--surface)] transition">
-                <ImgPlaceholder className="h-10 w-10 shrink-0" label="" round="rounded-lg" />
-                <div className="min-w-0 flex-1"><div className="text-sm font-semibold truncate">{r.title_tr}</div><div className="text-xs text-muted">{r.region}</div></div>
-                <div className="text-xs font-semibold tnum shrink-0" style={{ color: 'var(--c-kcal)' }}>{r.macros_per_serving ? r.macros_per_serving.kcal : Math.round(r.total_kcal / (r.servings || 1))} kcal</div>
-              </button>
-            ))}
+            {rec.meal_suggestions.slice(0, 3).map((r) => {
+              const sv = servBySlug[r.slug];
+              const perKcal = r.macros_per_serving ? r.macros_per_serving.kcal : (r.total_kcal ? Math.round(r.total_kcal / (r.servings || 1)) : null);
+              return (
+                <button key={r.id} onClick={onGoRecipes} className="fr flex items-center gap-3 rounded-xl surface-2 px-3 py-2.5 text-left hover:bg-[var(--surface)] transition">
+                  {r.image_url ? <img src={r.image_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-lg object-cover" onError={(e) => { e.target.style.display = 'none'; }} /> : <ImgPlaceholder className="h-10 w-10 shrink-0" label="" round="rounded-lg" />}
+                  <div className="min-w-0 flex-1"><div className="text-sm font-semibold truncate">{r.title_tr}</div><div className="text-xs text-muted">{sv ? `≈ ${(+sv.recommended_servings).toLocaleString('tr')} porsiyon` : r.region}</div></div>
+                  <div className="text-xs font-semibold tnum shrink-0 text-right" style={{ color: 'var(--c-kcal)' }}>{perKcal != null ? `${perKcal} kcal` : '—'}<div className="text-[10px] text-muted font-normal">/porsiyon</div></div>
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="flex flex-col gap-2.5">

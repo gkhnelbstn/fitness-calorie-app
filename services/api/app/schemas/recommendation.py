@@ -25,11 +25,22 @@ class WorkoutSuggestion(BaseModel):
     note: str
 
 
+class ServingSuggestion(BaseModel):
+    """Kalan kaloriye göre önerilen porsiyon (öğün önerisi başına)."""
+
+    recipe_slug: str
+    recipe_title: str
+    per_serving_kcal: int
+    recommended_servings: float  # 0.5 adımlı
+    total_kcal: int
+
+
 class RecommendationRead(BaseModel):
     id: int | None = None
     day: str
     energy: EnergyInfo
     meal_suggestions: list[RecipeRead] = []
+    serving_suggestions: list[ServingSuggestion] = []
     workout: WorkoutSuggestion
     notes: list[str] = []
 

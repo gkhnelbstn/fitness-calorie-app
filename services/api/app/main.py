@@ -10,6 +10,7 @@ from .config import get_settings
 from .routers import (
     admin,
     blacklist,
+    foods,
     health,
     meal_plans,
     meals,
@@ -42,6 +43,7 @@ app.include_router(meals.router)
 app.include_router(recipes.router)
 app.include_router(summary.router)
 app.include_router(blacklist.router)
+app.include_router(foods.router)
 app.include_router(profile.router)
 app.include_router(recommendations.router)
 app.include_router(meal_plans.router)

@@ -126,6 +126,33 @@ async def test_delete_meal(client, auth) -> None:
     assert all(m["id"] != mid for m in listed.json())
 
 
+async def test_delete_cascades_items_no_leak(client, auth) -> None:
+    """Regresyon: meal silinince kalemleri de silinmeli (FK cascade). SQLite id
+    yeniden kullansa bile yeni meal silinen meal'in yetim kalemlerini almamalı.
+    """
+    a = (
+        await client.post(
+            "/api/meals",
+            headers=auth,
+            json={"items": [{"raw_name": "alfa", "kcal": 10}, {"raw_name": "beta", "kcal": 20}]},
+        )
+    ).json()
+    assert (await client.delete(f"/api/meals/{a['id']}", headers=auth)).status_code == 204
+
+    b = (
+        await client.post(
+            "/api/meals", headers=auth, json={"items": [{"raw_name": "zeta", "kcal": 30}]}
+        )
+    ).json()
+    assert len(b["items"]) == 1  # yalnız kendi kalemi (yetim sızıntı yok)
+    assert b["items"][0]["raw_name"] == "zeta"
+    assert b["total_kcal"] == 30
+
+    listed = (await client.get(f"/api/meals?date={b['eaten_at'][:10]}", headers=auth)).json()
+    target = next(m for m in listed if m["id"] == b["id"])
+    assert len(target["items"]) == 1
+
+
 async def test_update_missing_404(client, auth) -> None:
     assert (
         await client.put("/api/meals/999999", headers=auth, json={"meal_type": "kahvalti"})
