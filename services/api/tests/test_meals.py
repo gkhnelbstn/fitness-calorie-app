@@ -26,6 +26,29 @@ async def test_create_from_raw_text_resolves_nutrition(client, auth) -> None:
     assert pilav["confidence"] == 1.0
 
 
+async def test_everyday_dishes_resolve_nutrition(client, auth) -> None:
+    """Regresyon: sık loglanan gündelik yemekler (çorba + ekmek) kalori almalı.
+
+    Canlı smoke testinde "1 kase mercimek çorbası, 2 dilim ekmek" 0 kcal dönüyordu
+    (canonical eşleşmiyordu). Seed genişletmesinden sonra ikisi de çözülmeli.
+    """
+    resp = await client.post(
+        "/api/meals",
+        headers=auth,
+        json={"raw_text": "1 kase mercimek çorbası, 2 dilim ekmek", "meal_type": "ogle"},
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["total_kcal"] and body["total_kcal"] > 0
+    corba = next(i for i in body["items"] if "çorba" in i["raw_name"])
+    ekmek = next(i for i in body["items"] if i["raw_name"] == "ekmek")
+    assert corba["canonical_id"] is not None
+    assert corba["kcal"] == 110.0  # 55 * 200g/100
+    assert ekmek["canonical_id"] is not None
+    assert ekmek["kcal"] == 159.0  # 265 * 60g/100
+    assert ekmek["confidence"] == 1.0
+
+
 async def test_structured_kcal_honored(client, auth) -> None:
     resp = await client.post(
         "/api/meals", headers=auth, json={"items": [{"raw_name": "ayran", "kcal": 60}]}
