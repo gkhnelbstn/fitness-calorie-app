@@ -9,7 +9,12 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import UserGoal, UserProfile
-from ..schemas.recommendation import EnergyInfo, RecommendationRead, WorkoutSuggestion
+from ..schemas.recommendation import (
+    EnergyInfo,
+    RecommendationRead,
+    ServingSuggestion,
+    WorkoutSuggestion,
+)
 from .blacklist import blacklist_ids
 from .energy import compute_energy
 from .intake import daily_intake
@@ -94,6 +99,29 @@ async def build_recommendation(
     if protein_remaining is not None and protein_remaining > 20:
         notes.append("Protein açığı yüksek; protein ağırlıklı öğünler öne alındı.")
 
+    # Porsiyon tavsiyesi: kalan kaloriye göre her öneri için ~kaç porsiyon (0.5 adımlı).
+    serving_suggestions: list[ServingSuggestion] = []
+    if meal_target and meal_target > 0:
+        for r in meal_suggestions:
+            ps = r.macros_per_serving.kcal if r.macros_per_serving else None
+            if ps and ps > 0:
+                n = max(0.5, round((meal_target / ps) * 2) / 2)
+                serving_suggestions.append(
+                    ServingSuggestion(
+                        recipe_slug=r.slug,
+                        recipe_title=r.title_tr,
+                        per_serving_kcal=ps,
+                        recommended_servings=n,
+                        total_kcal=round(ps * n),
+                    )
+                )
+        if serving_suggestions:
+            top = serving_suggestions[0]
+            notes.append(
+                f"Porsiyon önerisi: {top.recipe_title} ~{top.recommended_servings:g} porsiyon "
+                f"(~{top.total_kcal} kcal)."
+            )
+
     # Antrenman
     gt = goal.goal_type if goal else "koru"
     focus, weekly, days = WORKOUT_BY_GOAL.get(gt, WORKOUT_BY_GOAL["koru"])
@@ -121,6 +149,7 @@ async def build_recommendation(
         day=day,
         energy=energy_info,
         meal_suggestions=meal_suggestions,
+        serving_suggestions=serving_suggestions,
         workout=workout,
         notes=notes,
     )

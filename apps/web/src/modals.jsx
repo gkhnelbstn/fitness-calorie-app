@@ -49,6 +49,60 @@ function ItemEditor({ items, setItems }) {
   );
 }
 
+// Porsiyon seçici — yiyecek + ölçü (tabak/kase/kaşık…) + miktar → canlı kcal → kaleme ekle
+function PortionPicker({ onAdd }) {
+  const [name, setName] = useStateMo('');
+  const [data, setData] = useStateMo(null);
+  const [measure, setMeasure] = useStateMo('');
+  const [qty, setQty] = useStateMo(1);
+  const [loading, setLoading] = useStateMo(false);
+
+  const find = async () => {
+    if (name.trim().length < 2) return;
+    setLoading(true);
+    try {
+      const d = await API.foodPortions(name.trim());
+      setData(d);
+      setMeasure(d.default_measure || (d.portions[0] && d.portions[0].measure) || '');
+      setQty(1);
+    } catch (e) { setData({ name, matched: false, portions: [] }); } finally { setLoading(false); }
+  };
+
+  const opt = data && data.portions.find((p) => p.measure === measure);
+  const sc = (v) => (v != null ? Math.round(v * qty * 10) / 10 : null);
+  const kcal = opt && opt.kcal != null ? Math.round(opt.kcal * qty) : null;
+
+  const addItem = () => {
+    const nm = name.trim();
+    if (!nm) return;
+    onAdd({ raw_name: nm, quantity: qty, unit: measure || 'porsiyon', kcal: kcal || 0, protein_g: sc(opt && opt.protein_g) || 0, carb_g: sc(opt && opt.carb_g) || 0, fat_g: sc(opt && opt.fat_g) || 0, fiber_g: 0, confidence: opt && opt.kcal != null ? 1 : 0.4 });
+    setName(''); setData(null); setMeasure(''); setQty(1);
+  };
+
+  return (
+    <div className="rounded-xl bordered surface-2 p-3 flex flex-col gap-3">
+      <Field label="Yiyecek" hint="Ad yaz, Bul'a bas; ölçü seç (tabak/kase/kaşık)."><div className="flex gap-2">
+        <Input value={name} onChange={(e) => { setName(e.target.value); setData(null); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); find(); } }} placeholder="örn. pilav, mercimek çorbası, ekmek" className="flex-1" />
+        <Button variant="soft" icon="search" onClick={find} disabled={name.trim().length < 2 || loading}>{loading ? '…' : 'Bul'}</Button>
+      </div></Field>
+      {data && (
+        <div className="anim-fade flex flex-col gap-3">
+          {!data.matched && <p className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--c-fat)' }}><Icon name="info" size={13} />Besin değeri bulunamadı; kcal'i kalem listesinde elle düzenleyebilirsin.</p>}
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Ölçü"><Select value={measure} onChange={(e) => setMeasure(e.target.value)}>{data.portions.map((p) => <option key={p.measure} value={p.measure}>{p.measure}{p.kcal != null ? ` · ${p.kcal} kcal` : ''} ({p.grams} g)</option>)}</Select></Field>
+            <Field label="Miktar"><Stepper value={qty} onChange={setQty} min={0.5} max={20} step={0.5} /></Field>
+          </div>
+          <div className="flex items-center justify-between rounded-xl px-3.5 py-2.5" style={{ background: 'var(--accent-soft)', color: 'var(--accent-text)' }}>
+            <span className="text-sm font-semibold">{qty}× {measure}{opt ? ` (${Math.round(opt.grams * qty)} g)` : ''}</span>
+            <span className="text-sm font-display font-semibold tnum">{kcal != null ? `${kcal} kcal` : '— kcal'}</span>
+          </div>
+          <Button icon="plus" onClick={addItem} className="self-start">Kaleme ekle</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------------- ÖĞÜN EKLE ----------------
 function AddMealModal({ open, onClose, date, onAdded, toast, methodStyle = 'tabs' }) {
   const [tab, setTab] = useStateMo('dogal');
@@ -73,13 +127,14 @@ function AddMealModal({ open, onClose, date, onAdded, toast, methodStyle = 'tabs
     try {
       let meal;
       if (tab === 'dogal') meal = await API.addMeal({ raw_text: nl, meal_type: mealType || undefined, items }, date);
+      else if (tab === 'porsiyon') meal = await API.addMeal({ items, meal_type: mealType || undefined }, date);
       else if (tab === 'barkod') meal = await API.addMealBarcode(barcode, grams || 100, mealType || undefined, date);
       else meal = await API.addMealPhoto({ raw_text: photoDesc, meal_type: mealType || undefined }, date);
       toast(`Eklendi: ${Math.round(meal.total_kcal || 0)} kcal`); onAdded(meal); close();
     } catch (e) { toast('Eklenemedi: ' + e.message, 'error'); } finally { setBusy(false); }
   };
 
-  const canSubmit = tab === 'dogal' ? (items && items.length) : tab === 'barkod' ? barcode.trim().length > 3 : !!photoName;
+  const canSubmit = (tab === 'dogal' || tab === 'porsiyon') ? (items && items.length) : tab === 'barkod' ? barcode.trim().length > 3 : !!photoName;
   const aiBadge = window.aiAvailable ? { l: 'AI', tone: 'accent' } : { l: 'kurallı', tone: 'neutral' };
 
   return (
@@ -87,14 +142,14 @@ function AddMealModal({ open, onClose, date, onAdded, toast, methodStyle = 'tabs
       footer={<><Button variant="ghost" onClick={close}>Vazgeç</Button><Button icon="plus" onClick={submit} disabled={!canSubmit || busy}>{busy ? 'Ekleniyor…' : 'Öğünü ekle'}</Button></>}>
       <div className="flex flex-col gap-4 pb-2">
         {methodStyle === 'tiles' ? (
-          <div className="grid grid-cols-3 gap-2.5">
-            {[{ value: 'dogal', label: 'Doğal dil', icon: 'sparkles', desc: 'AI analiz' }, { value: 'barkod', label: 'Barkod', icon: 'barcode', desc: 'Okut + gram' }, { value: 'foto', label: 'Fotoğraf', icon: 'camera', desc: 'Tabağı çek' }].map((m) => (
+          <div className="grid grid-cols-2 gap-2.5">
+            {[{ value: 'dogal', label: 'Doğal dil', icon: 'sparkles', desc: 'AI analiz' }, { value: 'porsiyon', label: 'Porsiyon', icon: 'utensils', desc: 'Tabak/kaşık seç' }, { value: 'barkod', label: 'Barkod', icon: 'barcode', desc: 'Okut + gram' }, { value: 'foto', label: 'Fotoğraf', icon: 'camera', desc: 'Tabağı çek' }].map((m) => (
               <button key={m.value} onClick={() => setTab(m.value)} className={cx('fr flex flex-col items-center gap-1.5 rounded-2xl bordered px-2 py-4 transition', tab === m.value ? 'shadow-soft' : 'surface-2 text-muted hover:text-[var(--text)]')} style={tab === m.value ? { background: 'var(--accent-soft)', color: 'var(--accent-text)', borderColor: 'var(--accent)' } : undefined}>
                 <Icon name={m.icon} size={24} /><span className="font-display font-semibold text-sm">{m.label}</span><span className="text-[11px] opacity-80">{m.desc}</span>
               </button>
             ))}
           </div>
-        ) : <Segmented value={tab} onChange={setTab} options={[{ value: 'dogal', label: 'Doğal dil', icon: 'sparkles' }, { value: 'barkod', label: 'Barkod', icon: 'barcode' }, { value: 'foto', label: 'Fotoğraf', icon: 'camera' }]} />}
+        ) : <Segmented value={tab} onChange={setTab} options={[{ value: 'dogal', label: 'Doğal dil', icon: 'sparkles' }, { value: 'porsiyon', label: 'Porsiyon', icon: 'utensils' }, { value: 'barkod', label: 'Barkod', icon: 'barcode' }, { value: 'foto', label: 'Fotoğraf', icon: 'camera' }]} />}
 
         {tab === 'dogal' && (
           <div className="anim-fade flex flex-col gap-3">
@@ -111,6 +166,18 @@ function AddMealModal({ open, onClose, date, onAdded, toast, methodStyle = 'tabs
             {items && (
               <div className="anim-fade flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-sm"><Badge tone={aiBadge.tone}><Icon name="sparkles" size={12} />{source === 'ai' ? 'AI analizi' : 'Kurallı analiz'}</Badge><span className="text-muted text-xs">Değerleri düzenleyebilirsin</span><button onClick={() => setItems(null)} className="fr ml-auto text-xs font-semibold text-muted hover:text-[var(--text)]">Yeniden analiz</button></div>
+                <ItemEditor items={items} setItems={setItems} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'porsiyon' && (
+          <div className="anim-fade flex flex-col gap-3">
+            <PortionPicker onAdd={(it) => setItems([...(items || []), it])} />
+            {items && items.length > 0 && (
+              <div className="anim-fade flex flex-col gap-2">
+                <span className="text-xs text-muted">Eklenen kalemler — değerleri düzenleyebilirsin</span>
                 <ItemEditor items={items} setItems={setItems} />
               </div>
             )}

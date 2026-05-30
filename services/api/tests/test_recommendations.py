@@ -41,6 +41,13 @@ async def test_recommendation_with_profile_and_goal(client, auth) -> None:
     assert body["energy"]["remaining_kcal"] is not None
     assert body["energy"]["protein_target_g"] == 128.0  # 80 * 1.6
     assert body["workout"]["focus"] == "kardiyo + kuvvet"
+    # Porsiyon tavsiyesi: kalan kalori > 0 → en az bir öneri için porsiyon hesaplanır.
+    assert len(body["serving_suggestions"]) >= 1
+    sv = body["serving_suggestions"][0]
+    assert sv["recommended_servings"] >= 0.5
+    assert sv["total_kcal"] > 0
+    assert sv["recipe_slug"]
+    assert any("Porsiyon önerisi" in n for n in body["notes"])
 
 
 async def test_feedback(client, auth) -> None:

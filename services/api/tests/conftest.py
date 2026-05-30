@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app import config
-from app.db import Base, get_session
+from app.db import Base, enable_sqlite_fk, get_session
 from app.main import app
 from app.seeds import seed_all
 
@@ -37,6 +37,7 @@ def _reset_settings_cache():
 @pytest_asyncio.fixture
 async def engine(tmp_path):
     eng = create_async_engine(f"sqlite+aiosqlite:///{tmp_path.as_posix()}/t.db")
+    enable_sqlite_fk(eng)  # FK cascade'i zorla (prod ile aynı davranış)
     async with eng.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield eng
