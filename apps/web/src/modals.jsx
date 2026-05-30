@@ -190,7 +190,8 @@ function GoalWizardModal({ open, onClose, toast, onApplied }) {
     try {
       await API.saveProfile({ weight_kg: start });
       await API.saveGoal({ goal_type: goalType, target_kcal: targetKcal != null ? Math.round(targetKcal) : null, target_protein_g: profile && profile.weight_kg ? Math.round(start * 1.6) : null });
-      await API.savePlan({ start_weight: start, target_weight: target, weeks, pace });
+      // Plan tercihi yardımcı veridir; kaydı başarısız olsa da hedef ayarlandı sayılır.
+      try { await API.savePlan({ start_weight: start, target_weight: target, weeks, pace }); } catch {}
       toast('Hedef ayarlandı'); onApplied && onApplied(); onClose();
     } catch { toast('Kaydedilemedi', 'error'); } finally { setBusy(false); }
   };

@@ -37,3 +37,17 @@ class GoalRead(BaseModel):
     target_kcal: int | None = None
     target_protein_g: float | None = None
     active: bool = True
+
+
+class GoalPlanUpdate(BaseModel):
+    """Hedef sihirbazı + antrenman planı tercihleri (UserPreference'ta saklanır).
+
+    Tüm alanlar opsiyonel: PUT kısmi gelir ve mevcut planla birleştirilir.
+    """
+
+    start_weight: float | None = None
+    target_weight: float | None = None
+    weeks: int | None = None
+    pace: float | None = None
+    days_per_week: int | None = None
+    training_days: list[str] | None = None
