@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Uygulama teması — sağlıklı yaşam estetiği, yeşil accent, yumuşak kartlar.
+/// Uygulama teması — React tasarımıyla hizalı: yeşil accent, Manrope gövde +
+/// Poppins başlık, yumuşak kartlar.
 class AppTheme {
-  static const seed = Color(0xFF16A34A); // yeşil
+  static const seed = Color(0xFF16A34A); // yeşil (React --accent)
 
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark() => _build(Brightness.dark);
 
   static ThemeData _build(Brightness b) {
     final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: b);
+    final baseText = ThemeData(brightness: b).textTheme;
+    // Gövde Manrope; başlıklar (display/headline/title) Poppins — React fontları.
+    final textTheme = GoogleFonts.manropeTextTheme(baseText).copyWith(
+      displayLarge: GoogleFonts.poppins(textStyle: baseText.displayLarge, fontWeight: FontWeight.w700),
+      displayMedium: GoogleFonts.poppins(textStyle: baseText.displayMedium, fontWeight: FontWeight.w700),
+      displaySmall: GoogleFonts.poppins(textStyle: baseText.displaySmall, fontWeight: FontWeight.w700),
+      headlineMedium: GoogleFonts.poppins(textStyle: baseText.headlineMedium, fontWeight: FontWeight.w700),
+      headlineSmall: GoogleFonts.poppins(textStyle: baseText.headlineSmall, fontWeight: FontWeight.w800),
+      titleLarge: GoogleFonts.poppins(textStyle: baseText.titleLarge, fontWeight: FontWeight.w700),
+    );
     return ThemeData(
       colorScheme: scheme,
       useMaterial3: true,
+      textTheme: textTheme,
       scaffoldBackgroundColor: b == Brightness.light
           ? const Color(0xFFF6F8F6)
           : scheme.surface,

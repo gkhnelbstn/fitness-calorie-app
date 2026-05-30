@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'api.dart';
 import 'config.dart';
@@ -14,6 +15,8 @@ import 'screens/workout_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // intl tarih biçimi (Türkçe ay adları) — Özet/Antrenman DateFormat('...','tr') için şart.
+  await initializeDateFormatting('tr', null);
   final cfg = await ConfigStore.load();
   runApp(FitnessApp(cfg: cfg));
 }
