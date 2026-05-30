@@ -1199,11 +1199,16 @@ async def seed_recipes(session: AsyncSession) -> int:
         ).scalar_one_or_none()
         if exists is not None:
             continue
+        tags = row.get("tags", [])
         recipe = Recipe(
             slug=row["slug"],
             title_tr=row["title"],
             servings=row["servings"],
             region=row["region"],
+            category=row.get("category") or (tags[0] if tags else None),
+            cook_minutes=row.get("cook_minutes"),
+            difficulty=row.get("difficulty"),
+            image_url=row.get("image_url"),
             is_adaptable=True,
         )
         session.add(recipe)

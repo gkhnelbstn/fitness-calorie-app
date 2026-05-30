@@ -16,7 +16,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 1,
         "slug": "bench-press",
-        "name_tr": "Bench Press",
+        "name_tr": "Bench Press (Göğüs Presi)",
         "primary_muscle": "gogus",
         "level": "intermediate",
         "equipment": "halter",
@@ -66,7 +66,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 6,
         "slug": "squat",
-        "name_tr": "Squat",
+        "name_tr": "Squat (Çömelme)",
         "primary_muscle": "bacak",
         "level": "intermediate",
         "equipment": "halter",
@@ -76,7 +76,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 7,
         "slug": "romanian-deadlift",
-        "name_tr": "Romanian Deadlift",
+        "name_tr": "Romanian Deadlift (Ölü Kaldırış)",
         "primary_muscle": "bacak",
         "level": "intermediate",
         "equipment": "halter",
@@ -86,7 +86,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 8,
         "slug": "plank",
-        "name_tr": "Plank",
+        "name_tr": "Plank (Tahta Duruşu)",
         "primary_muscle": "karin",
         "level": "beginner",
         "equipment": "vücut ağırlığı",
@@ -116,7 +116,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 11,
         "slug": "hiit-intervals",
-        "name_tr": "HIIT İnterval",
+        "name_tr": "HIIT (Aralıklı Yüksek Tempo)",
         "primary_muscle": "kardiyo",
         "level": "intermediate",
         "equipment": "vücut ağırlığı",
@@ -146,7 +146,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 14,
         "slug": "tricep-pushdown",
-        "name_tr": "Triceps Pushdown",
+        "name_tr": "Triceps Pushdown (Arka Kol İtişi)",
         "primary_muscle": "kol",
         "level": "beginner",
         "equipment": "makine",
@@ -156,7 +156,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 15,
         "slug": "leg-press",
-        "name_tr": "Leg Press",
+        "name_tr": "Leg Press (Bacak Presi)",
         "primary_muscle": "bacak",
         "level": "beginner",
         "equipment": "makine",
@@ -186,7 +186,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 18,
         "slug": "leg-curl",
-        "name_tr": "Leg Curl",
+        "name_tr": "Leg Curl (Arka Bacak Bükme)",
         "primary_muscle": "bacak",
         "level": "beginner",
         "equipment": "makine",
@@ -206,7 +206,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 20,
         "slug": "chest-fly",
-        "name_tr": "Pec Deck (Fly)",
+        "name_tr": "Pec Deck (Göğüs Sıkıştırma)",
         "primary_muscle": "gogus",
         "level": "beginner",
         "equipment": "makine",
@@ -216,7 +216,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 21,
         "slug": "hip-thrust",
-        "name_tr": "Hip Thrust",
+        "name_tr": "Hip Thrust (Kalça İtişi)",
         "primary_muscle": "kalca",
         "level": "intermediate",
         "equipment": "halter",
@@ -246,7 +246,7 @@ EXERCISES: list[dict[str, Any]] = [
     {
         "id": 24,
         "slug": "goblet-squat",
-        "name_tr": "Goblet Squat",
+        "name_tr": "Goblet Squat (Önden Çömelme)",
         "primary_muscle": "bacak",
         "level": "beginner",
         "equipment": "dambıl",

@@ -82,7 +82,7 @@
           ] },
         ],
       },
-      workoutLogs: { [t]: [{ id: 1, template_slug: 'bench-press', name_tr: 'Bench Press', sets: 4, reps: 10, minutes: 25, done: true }] },
+      workoutLogs: { [t]: [{ id: 1, template_slug: 'bench-press', name_tr: 'Bench Press (Göğüs Presi)', sets: 4, reps: 10, minutes: 25, done: true }] },
       recId: 500,
     };
   }
@@ -196,30 +196,30 @@
 
   // ---------- Egzersiz kataloğu (free-exercise-db tarzı, WorkoutTemplate) ----------
   const EXERCISES = [
-    { id: 1, slug: 'bench-press', name_tr: 'Bench Press', primary_muscle: 'gogus', level: 'intermediate', equipment: 'halter', category: 'kuvvet', secondary: ['triceps', 'omuz'] },
+    { id: 1, slug: 'bench-press', name_tr: 'Bench Press (Göğüs Presi)', primary_muscle: 'gogus', level: 'intermediate', equipment: 'halter', category: 'kuvvet', secondary: ['triceps', 'omuz'] },
     { id: 2, slug: 'incline-dumbbell-press', name_tr: 'Eğimli Dambıl Press', primary_muscle: 'gogus', level: 'intermediate', equipment: 'dambıl', category: 'kuvvet', secondary: ['omuz'] },
     { id: 3, slug: 'pull-up', name_tr: 'Barfiks', primary_muscle: 'sirt', level: 'expert', equipment: 'vücut ağırlığı', category: 'kuvvet', secondary: ['biceps'] },
     { id: 4, slug: 'lat-pulldown', name_tr: 'Lat Çekiş', primary_muscle: 'sirt', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: ['biceps'] },
     { id: 5, slug: 'overhead-press', name_tr: 'Omuz Press', primary_muscle: 'omuz', level: 'intermediate', equipment: 'halter', category: 'kuvvet', secondary: ['triceps'] },
-    { id: 6, slug: 'squat', name_tr: 'Squat', primary_muscle: 'bacak', level: 'intermediate', equipment: 'halter', category: 'kuvvet', secondary: ['kalça'] },
-    { id: 7, slug: 'romanian-deadlift', name_tr: 'Romanian Deadlift', primary_muscle: 'bacak', level: 'intermediate', equipment: 'halter', category: 'kuvvet', secondary: ['sirt', 'kalça'] },
-    { id: 8, slug: 'plank', name_tr: 'Plank', primary_muscle: 'karin', level: 'beginner', equipment: 'vücut ağırlığı', category: 'kuvvet', secondary: ['bel'] },
+    { id: 6, slug: 'squat', name_tr: 'Squat (Çömelme)', primary_muscle: 'bacak', level: 'intermediate', equipment: 'halter', category: 'kuvvet', secondary: ['kalça'] },
+    { id: 7, slug: 'romanian-deadlift', name_tr: 'Romanian Deadlift (Ölü Kaldırış)', primary_muscle: 'bacak', level: 'intermediate', equipment: 'halter', category: 'kuvvet', secondary: ['sirt', 'kalça'] },
+    { id: 8, slug: 'plank', name_tr: 'Plank (Tahta Duruşu)', primary_muscle: 'karin', level: 'beginner', equipment: 'vücut ağırlığı', category: 'kuvvet', secondary: ['bel'] },
     { id: 9, slug: 'bicycle-crunch', name_tr: 'Bisiklet Mekiği', primary_muscle: 'karin', level: 'beginner', equipment: 'vücut ağırlığı', category: 'kuvvet', secondary: [] },
     { id: 10, slug: 'treadmill-run', name_tr: 'Koşu Bandı', primary_muscle: 'kardiyo', level: 'beginner', equipment: 'makine', category: 'kardiyo', secondary: [] },
-    { id: 11, slug: 'hiit-intervals', name_tr: 'HIIT İnterval', primary_muscle: 'kardiyo', level: 'intermediate', equipment: 'vücut ağırlığı', category: 'kardiyo', secondary: [] },
+    { id: 11, slug: 'hiit-intervals', name_tr: 'HIIT (Aralıklı Yüksek Tempo)', primary_muscle: 'kardiyo', level: 'intermediate', equipment: 'vücut ağırlığı', category: 'kardiyo', secondary: [] },
     { id: 12, slug: 'walking', name_tr: 'Tempolu Yürüyüş', primary_muscle: 'kardiyo', level: 'beginner', equipment: 'yok', category: 'kardiyo', secondary: [] },
     { id: 13, slug: 'dumbbell-curl', name_tr: 'Dambıl Biceps Curl', primary_muscle: 'kol', level: 'beginner', equipment: 'dambıl', category: 'kuvvet', secondary: [] },
-    { id: 14, slug: 'tricep-pushdown', name_tr: 'Triceps Pushdown', primary_muscle: 'kol', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: [] },
-    { id: 15, slug: 'leg-press', name_tr: 'Leg Press', primary_muscle: 'bacak', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: ['kalca'] },
+    { id: 14, slug: 'tricep-pushdown', name_tr: 'Triceps Pushdown (Arka Kol İtişi)', primary_muscle: 'kol', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: [] },
+    { id: 15, slug: 'leg-press', name_tr: 'Leg Press (Bacak Presi)', primary_muscle: 'bacak', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: ['kalca'] },
     { id: 16, slug: 'dips', name_tr: 'Dips (Paralel)', primary_muscle: 'gogus', level: 'intermediate', equipment: 'vücut ağırlığı', category: 'kuvvet', secondary: ['kol', 'omuz'] },
     { id: 17, slug: 'dumbbell-shoulder-press', name_tr: 'Dambıl Omuz Press', primary_muscle: 'omuz', level: 'beginner', equipment: 'dambıl', category: 'kuvvet', secondary: ['kol'] },
-    { id: 18, slug: 'leg-curl', name_tr: 'Leg Curl', primary_muscle: 'bacak', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: ['kalca'] },
+    { id: 18, slug: 'leg-curl', name_tr: 'Leg Curl (Arka Bacak Bükme)', primary_muscle: 'bacak', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: ['kalca'] },
     { id: 19, slug: 'seated-row', name_tr: 'Oturarak Kürek', primary_muscle: 'sirt', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: ['kol'] },
-    { id: 20, slug: 'chest-fly', name_tr: 'Pec Deck (Fly)', primary_muscle: 'gogus', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: ['omuz'] },
-    { id: 21, slug: 'hip-thrust', name_tr: 'Hip Thrust', primary_muscle: 'kalca', level: 'intermediate', equipment: 'halter', category: 'kuvvet', secondary: ['bacak'] },
+    { id: 20, slug: 'chest-fly', name_tr: 'Pec Deck (Göğüs Sıkıştırma)', primary_muscle: 'gogus', level: 'beginner', equipment: 'makine', category: 'kuvvet', secondary: ['omuz'] },
+    { id: 21, slug: 'hip-thrust', name_tr: 'Hip Thrust (Kalça İtişi)', primary_muscle: 'kalca', level: 'intermediate', equipment: 'halter', category: 'kuvvet', secondary: ['bacak'] },
     { id: 22, slug: 'rowing-machine', name_tr: 'Kürek Makinesi', primary_muscle: 'kardiyo', level: 'beginner', equipment: 'makine', category: 'kardiyo', secondary: ['sirt'] },
     { id: 23, slug: 'jump-rope', name_tr: 'İp Atlama', primary_muscle: 'kardiyo', level: 'beginner', equipment: 'yok', category: 'kardiyo', secondary: ['bacak'] },
-    { id: 24, slug: 'goblet-squat', name_tr: 'Goblet Squat', primary_muscle: 'bacak', level: 'beginner', equipment: 'dambıl', category: 'kuvvet', secondary: ['kalca'] },
+    { id: 24, slug: 'goblet-squat', name_tr: 'Goblet Squat (Önden Çömelme)', primary_muscle: 'bacak', level: 'beginner', equipment: 'dambıl', category: 'kuvvet', secondary: ['kalca'] },
   ];
   // Ekipman tipi: makine | serbest (halter/dambıl) | vücut (vücut ağırlığı/yok)
   const EQ_TYPE = (eq) => /makine/.test(eq) ? 'makine' : /halter|dambıl/.test(eq) ? 'serbest' : 'vücut';
