@@ -6,10 +6,15 @@ async def _slugs(resp) -> set[str]:
 
 
 async def test_search_all(client, auth) -> None:
-    # Tüm sayfayı al (geniş limit). Çekirdek + geniş set seed'li.
-    resp = await client.get("/api/recipes?limit=100", headers=auth)
-    assert resp.status_code == 200
-    slugs = await _slugs(resp)
+    # Tüm tarifleri sayfalayarak topla (limit le=100 ile sınırlı). Çekirdek + küratör.
+    slugs: set[str] = set()
+    offset = 0
+    while offset <= 500:
+        page = (await client.get(f"/api/recipes?limit=100&offset={offset}", headers=auth)).json()
+        if not page:
+            break
+        slugs |= {r["slug"] for r in page}
+        offset += 100
     assert {
         "menemen",
         "cacik",
@@ -18,7 +23,7 @@ async def test_search_all(client, auth) -> None:
         "imam-bayildi",
         "firinda-somon",
     } <= slugs
-    assert len(slugs) >= 40
+    assert len(slugs) >= 120  # çekirdek + küratör genişletme (EXTRA_RECIPES)
 
 
 async def test_pagination(client, auth) -> None:

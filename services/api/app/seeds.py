@@ -14,6 +14,8 @@ import asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .data.ingredients_tr import EXTRA_SEED
+from .data.recipes_tr import EXTRA_RECIPES
 from .models import (
     IngredientAliasTr,
     IngredientCanonical,
@@ -517,6 +519,9 @@ SEED: list[dict] = [
         "nutr": (42, 0.0, 10.6, 0.0),
     },
 ]
+
+# Küratör ek malzemeler (app/data/ingredients_tr.py)
+SEED.extend(EXTRA_SEED)
 
 
 async def _get_source(session: AsyncSession) -> SourceAttribution:
@@ -1193,7 +1198,7 @@ RECIPES: list[dict] = [
 async def seed_recipes(session: AsyncSession) -> int:
     """Çekirdek tarifleri ekler (idempotent). Eklenen tarif sayısını döner."""
     added = 0
-    for row in RECIPES:
+    for row in RECIPES + EXTRA_RECIPES:
         exists = (
             await session.execute(select(Recipe).where(Recipe.slug == row["slug"]))
         ).scalar_one_or_none()
