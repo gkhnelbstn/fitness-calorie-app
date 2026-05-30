@@ -40,6 +40,9 @@ ignore = ["B008"]
 [tool.ruff.lint.per-file-ignores]
 # Egzersiz kataloğu/havuzları uzun literal veri satırları — okunabilirlik için tek satır.
 "app/data/workouts.py" = ["E501"]
+# Malzeme/tarif tohumu — yoğun literal veri satırları (per_100g, malzeme listeleri).
+"app/data/ingredients_tr.py" = ["E501"]
+"app/data/recipes_tr.py" = ["E501"]
 
 [tool.ruff.format]
 docstring-code-format = true
