@@ -31,6 +31,30 @@ async def test_pagination(client, auth) -> None:
     assert not (s1 & s2)  # sayfalar çakışmaz
 
 
+async def test_recipe_exposes_new_fields(client, auth) -> None:
+    """Recipe model alanları (category/cook_minutes/difficulty/image_url/macros_per_serving)
+    response'ta bulunmalı; category seed'de ilk tag'den türetilir."""
+    resp = await client.get("/api/recipes?q=mercimek", headers=auth)
+    merc = next(r for r in resp.json() if r["slug"] == "mercimek-corbasi")
+    for key in ("category", "cook_minutes", "difficulty", "image_url", "macros_per_serving"):
+        assert key in merc
+    assert merc["category"] == "çorba"  # tags[0]
+    # total_kcal + servings varsa porsiyon başı kcal türetilir
+    if merc["total_kcal"] and merc["servings"]:
+        assert merc["macros_per_serving"]["kcal"] > 0
+
+
+async def test_category_filter(client, auth) -> None:
+    resp = await client.get("/api/recipes?category=çorba&limit=100", headers=auth)
+    assert resp.status_code == 200
+    recipes = resp.json()
+    assert recipes  # en az bir çorba
+    assert all(r["category"] == "çorba" for r in recipes)
+    slugs = {r["slug"] for r in recipes}
+    assert "mercimek-corbasi" in slugs
+    assert "menemen" not in slugs  # kahvaltı kategorisinde
+
+
 async def test_search_query_filter(client, auth) -> None:
     resp = await client.get("/api/recipes?q=menemen", headers=auth)
     slugs = await _slugs(resp)

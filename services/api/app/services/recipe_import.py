@@ -40,19 +40,28 @@ async def _import_recipe(
     source_id: int,
     translator: Translator,
     do_translate: bool,
+    image_url: str | None = None,
 ) -> bool:
-    slug = slugify_tr(title)
+    # Önce başlığı çevir, slug'ı Türkçe başlıktan üret (İngilizce slug sızıntısını önle).
+    title_tr = await translator.to_turkish(title) if do_translate else title
+    slug = slugify_tr(title_tr) or slugify_tr(title)
     if not slug:
         return False
+    # Idempotent: aynı slug varsa tekrar ekleme (re-import / çakışma → atla).
     exists = (await session.execute(select(Recipe).where(Recipe.slug == slug))).scalar_one_or_none()
     if exists is not None:
         return False
 
-    title_tr = await translator.to_turkish(title) if do_translate else title
+    category_tr = None
+    if category:
+        category_tr = (await translator.to_turkish(category) if do_translate else category).lower()
+
     recipe = Recipe(
         slug=slug,
         title_tr=title_tr,
         region=area or "uluslararası",
+        category=category_tr,
+        image_url=image_url,
         source_id=source_id,
         license_mode="atıf",
     )
@@ -75,9 +84,8 @@ async def _import_recipe(
     for i, step in enumerate(_split_steps(instr), start=1):
         session.add(RecipeStepTr(recipe_id=recipe.id, step_no=i, text_tr=step))
 
-    if category:
-        tag = (await translator.to_turkish(category) if do_translate else category).lower()
-        session.add(RecipeTag(recipe_id=recipe.id, tag=tag[:64]))
+    if category_tr:
+        session.add(RecipeTag(recipe_id=recipe.id, tag=category_tr[:64]))
     return True
 
 
@@ -112,6 +120,7 @@ async def import_themealdb(
                 source_id=source.id,
                 translator=translator,
                 do_translate=do_translate,
+                image_url=meal.get("strMealThumb"),
             )
             if ok:
                 count += 1
@@ -188,6 +197,7 @@ async def import_themealdb_query(
             source_id=source.id,
             translator=translator,
             do_translate=do_translate,
+            image_url=meal.get("strMealThumb"),
         )
         if ok:
             count += 1
@@ -218,6 +228,7 @@ async def import_spoonacular(
             source_id=source.id,
             translator=translator,
             do_translate=do_translate,
+            image_url=recipe.get("image"),
         )
         if ok:
             count += 1

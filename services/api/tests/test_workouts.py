@@ -57,7 +57,7 @@ async def test_workout_log_crud(client, auth) -> None:
     )
     assert created.status_code == 201
     log = created.json()
-    assert log["name_tr"] == "Bench Press"
+    assert log["name_tr"] == "Bench Press (Göğüs Presi)"
     assert log["kcal"] and log["kcal"] > 0
     lid = log["id"]
 

@@ -169,6 +169,10 @@ class Recipe(TimestampMixin, Base):
     servings: Mapped[int | None] = mapped_column(Integer, nullable=True)
     total_kcal: Mapped[float | None] = mapped_column(Float, nullable=True)
     region: Mapped[str | None] = mapped_column(String(96), nullable=True)
+    category: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    cook_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    difficulty: Mapped[str | None] = mapped_column(String(16), nullable=True)  # kolay/orta/zor
+    image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     is_adaptable: Mapped[bool] = mapped_column(Boolean, default=True)
     needs_refresh: Mapped[bool] = mapped_column(Boolean, default=False)
     license_mode: Mapped[str | None] = mapped_column(String(32), nullable=True)

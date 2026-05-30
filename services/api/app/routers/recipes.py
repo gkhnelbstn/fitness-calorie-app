@@ -32,6 +32,7 @@ async def _names_to_ids(session: AsyncSession, names: list[str]) -> set[int]:
 @router.get("", response_model=list[RecipeRead])
 async def search(
     q: str | None = Query(default=None, description="Başlık arama"),
+    category: str | None = Query(default=None, description="Kategori filtresi (çorba, ana yemek…)"),
     exclude: list[str] = Query(default_factory=list, description="İstenmeyen malzemeler"),
     limit: int = Query(default=24, ge=1, le=100, description="Sayfa boyutu"),
     offset: int = Query(default=0, ge=0, description="Atlanacak kayıt"),
@@ -48,7 +49,7 @@ async def search(
             logger.warning("Canlı tarif aramada hata (q=%s)", q, exc_info=True)
     blocked = await blacklist_ids(session, user.id)
     blocked |= await _names_to_ids(session, exclude)
-    return await search_recipes(session, q, blocked, limit=limit, offset=offset)
+    return await search_recipes(session, q, blocked, category=category, limit=limit, offset=offset)
 
 
 @router.get("/cook-with", response_model=list[RecipeRead])

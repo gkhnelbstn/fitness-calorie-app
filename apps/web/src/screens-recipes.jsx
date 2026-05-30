@@ -27,7 +27,9 @@ function RecipeCard({ recipe, defaultOpen }) {
   return (
     <Card className="overflow-hidden flex flex-col">
       <div className="flex gap-4 p-4 sm:p-5">
-        <ImgPlaceholder className="h-24 w-24 sm:h-28 sm:w-28 shrink-0" label="tarif" />
+        {recipe.image_url
+          ? <img src={recipe.image_url} alt={recipe.title_tr} loading="lazy" className="h-24 w-24 sm:h-28 sm:w-28 shrink-0 rounded-xl object-cover bordered" onError={(e) => { e.target.style.display = 'none'; }} />
+          : <ImgPlaceholder className="h-24 w-24 sm:h-28 sm:w-28 shrink-0" label="tarif" />}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-display font-semibold text-lg leading-tight">{recipe.title_tr}</h3>

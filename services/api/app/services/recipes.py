@@ -15,7 +15,7 @@ from ..models import (
     RecipeStepTr,
     RecipeTag,
 )
-from ..schemas.recipe import IngredientLine, RecipeRead
+from ..schemas.recipe import IngredientLine, MacrosPerServing, RecipeRead
 from .substitution import substitute_for
 from .text import slugify_tr
 
@@ -98,13 +98,21 @@ async def adapt_recipe(
         .scalars()
         .all()
     ]
+    mps = None
+    if recipe.total_kcal is not None and recipe.servings:
+        mps = MacrosPerServing(kcal=round(recipe.total_kcal / recipe.servings))
     return RecipeRead(
         id=recipe.id,
         slug=recipe.slug,
         title_tr=recipe.title_tr,
         servings=recipe.servings,
         region=recipe.region,
+        category=recipe.category,
+        cook_minutes=recipe.cook_minutes,
+        difficulty=recipe.difficulty,
+        image_url=recipe.image_url,
         total_kcal=recipe.total_kcal,
+        macros_per_serving=mps,
         adaptable=True,
         ingredients=lines,
         steps=steps,
@@ -118,6 +126,7 @@ async def search_recipes(
     q: str | None,
     blocked: set[int],
     *,
+    category: str | None = None,
     limit: int | None = None,
     offset: int = 0,
 ) -> list[RecipeRead]:
@@ -135,6 +144,8 @@ async def search_recipes(
         if q_slug:
             clauses.append(Recipe.slug.contains(q_slug))
         stmt = stmt.where(or_(*clauses))
+    if category:
+        stmt = stmt.where(func.lower(Recipe.category) == category.strip().lower())
     recipes = (await session.execute(stmt.order_by(Recipe.title_tr))).scalars().all()
     out: list[RecipeRead] = []
     for rc in recipes:
