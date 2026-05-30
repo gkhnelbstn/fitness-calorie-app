@@ -130,6 +130,7 @@ function RecipesScreen({ demoState }) {
   }
   const blHidden = hidden.filter((h) => h.kind === 'blacklist');
   const exHidden = hidden.filter((h) => h.kind === 'exclude');
+  const retry = () => { if (tab === 'ara') fetchRecipes(0, true); else cook.reload(); };
 
   return (
     <div className="flex flex-col gap-5">
@@ -152,7 +153,7 @@ function RecipesScreen({ demoState }) {
         </Field>
       </div>
 
-      {error ? <ErrorBanner message={error} onRetry={active.reload} />
+      {error ? <ErrorBanner message={error} onRetry={retry} />
         : loading ? <div className="flex flex-col gap-3">{[0, 1].map((i) => <Skel key={i} style={{ height: 240, borderRadius: 16 }} />)}</div>
         : (
           <>
