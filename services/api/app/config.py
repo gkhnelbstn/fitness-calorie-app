@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     spoonacular_api_key: str = ""
     spoonacular_base_url: str = "https://api.spoonacular.com"
 
+    # wger: açık REST API (auth yok). language=16 → Türkçe besin (OFF kaynaklı, ~2300).
+    wger_base_url: str = "https://wger.de"
+
     @property
     def spoonacular_enabled(self) -> bool:
         return bool(self.spoonacular_api_key.strip())
