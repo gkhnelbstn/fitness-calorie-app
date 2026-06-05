@@ -255,8 +255,16 @@
   };
   const DEFAULT_INSTR = (e) => [`${e.name_tr} hareketini kontrollü ve tam hareket açıklığıyla yap.`, 'Nefesi efor anında ver, sırtı nötr tut.'];
 
+  const FEDB_IMG = { 'bench-press': 'Barbell_Bench_Press_-_Medium_Grip', 'incline-dumbbell-press': 'Incline_Dumbbell_Press', 'pull-up': 'Pullups', 'lat-pulldown': 'Wide-Grip_Lat_Pulldown', 'overhead-press': 'Standing_Military_Press', 'squat': 'Barbell_Squat', 'romanian-deadlift': 'Romanian_Deadlift', 'plank': 'Plank', 'bicycle-crunch': 'Air_Bike', 'dumbbell-curl': 'Dumbbell_Bicep_Curl', 'tricep-pushdown': 'Triceps_Pushdown', 'leg-press': 'Leg_Press', 'dips': 'Dips_-_Triceps_Version', 'dumbbell-shoulder-press': 'Dumbbell_Shoulder_Press', 'leg-curl': 'Lying_Leg_Curls', 'seated-row': 'Seated_Cable_Rows', 'chest-fly': 'Dumbbell_Flyes', 'hip-thrust': 'Barbell_Hip_Thrust', 'jump-rope': 'Rope_Jumping', 'goblet-squat': 'Goblet_Squat' };
+  function exerciseMedia(e) {
+    const name = (e.name_tr || '').split(' (')[0];
+    const youtube = `https://www.youtube.com/results?search_query=${encodeURIComponent(name + ' nasıl yapılır')}`;
+    const folder = FEDB_IMG[e.slug];
+    const image = folder ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${folder}/0.jpg` : `https://placehold.co/640x360/e7ebe8/166534?text=${encodeURIComponent(name)}`;
+    return { image_url: image, video_url: youtube, youtube_url: youtube, media_caption: 'Form videosu (YouTube) + görsel referans' };
+  }
   function enrich(e) {
-    return { ...e, equipment_type: EQ_TYPE(e.equipment), instructions: INSTR[e.slug] || DEFAULT_INSTR(e), machine_howto: MACHINE_HOWTO[e.slug] || null };
+    return { ...e, equipment_type: EQ_TYPE(e.equipment), instructions: INSTR[e.slug] || DEFAULT_INSTR(e), machine_howto: MACHINE_HOWTO[e.slug] || null, ...exerciseMedia(e) };
   }
   const exBySlug = (slug) => { const e = EXERCISES.find((x) => x.slug === slug); return e ? enrich(e) : null; };
 
