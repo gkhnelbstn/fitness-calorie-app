@@ -26,6 +26,8 @@ dev = [
     "bandit>=1.9.4",
     "pip-audit>=2.10.0",
     "respx>=0.23.1",
+    # pip PYSEC-2026-196 zafiyeti (26.1.1) → fixli sürüme pinle (pip-audit yeşil kalsın).
+    "pip>=26.1.2",
 ]
 
 [tool.ruff]
