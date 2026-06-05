@@ -13,6 +13,7 @@ from ..db import get_session
 from ..security import require_token
 from ..services.food_import import import_usda
 from ..services.recipe_import import import_spoonacular, import_themealdb
+from ..services.wger_import import import_wger_turkish
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_token)])
 
@@ -54,3 +55,13 @@ async def import_spoon_ep(
         )
     n = await import_spoonacular(session, query, number=number, do_translate=translate)
     return {"imported": n, "query": query}
+
+
+@router.post("/import/wger-tr")
+async def import_wger_tr_ep(
+    limit: int = Query(default=200, ge=1, le=2500, description="Çekilecek Türkçe besin sayısı"),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """wger Türkçe besinleri (language=16, OFF kaynaklı) içe al → canonical + nutrition."""
+    n = await import_wger_turkish(session, limit=limit)
+    return {"imported": n, "source": "wger", "limit": limit}
