@@ -375,13 +375,31 @@ _FEDB_IMG: dict[str, str] = {
 }
 _FEDB_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/{}/0.jpg"
 
+# slug → wger gerçek egzersiz fotoğrafı (CC-lisanslı, URL'ler 200 doğrulandı).
+# wger varsa tercih edilir; yoksa free-exercise-db; o da yoksa placeholder.
+_WGER_IMG: dict[str, str] = {
+    "bench-press": "https://wger.de/media/exercise-images/192/Bench-press-1.png",
+    "incline-dumbbell-press": "https://wger.de/media/exercise-images/1277/9f3c7817-3e3d-417d-8b08-2c0a1aa5fe03.jpg",
+    "pull-up": "https://wger.de/media/exercise-images/475/b0554016-16fd-4dbe-be47-a2a17d16ae0e.jpg",
+    "plank": "https://wger.de/media/exercise-images/458/b7bd9c28-9f1d-4647-bd17-ab6a3adf5770.png",
+    "dumbbell-curl": "https://wger.de/media/exercise-images/1226/a6154dbd-67a0-4a36-8748-0f5af3865e83.jpg",
+    "tricep-pushdown": "https://wger.de/media/exercise-images/1185/c5ca283d-8958-4fd8-9d59-a3f52a3ac66b.jpg",
+    "leg-press": "https://wger.de/media/exercise-images/371/d2136f96-3a43-4d4c-9944-1919c4ca1ce1.webp",
+    "dips": "https://wger.de/media/exercise-images/194/34600351-8b0b-4cb0-8daa-583537be15b0.png",
+    "leg-curl": "https://wger.de/media/exercise-images/364/b318dde9-f5f2-489f-940a-cd864affb9e3.png",
+    "seated-row": "https://wger.de/media/exercise-images/1117/e74255c0-67a0-4309-b78d-2d79e6ff8c11.png",
+    "goblet-squat": "https://wger.de/media/exercise-images/203/1c052351-2af0-4227-aeb0-244008e4b0a8.jpeg",
+}
+
 
 def _media(e: dict) -> dict[str, str]:
     # YouTube "nasıl yapılır" araması (parantezli TR ek atılır → temiz sorgu).
     name = e["name_tr"].split(" (")[0]
     youtube = f"https://www.youtube.com/results?search_query={quote_plus(name + ' nasıl yapılır')}"
     folder = _FEDB_IMG.get(e["slug"])
-    if folder:
+    if e["slug"] in _WGER_IMG:
+        image = _WGER_IMG[e["slug"]]  # gerçek foto (wger) öncelikli
+    elif folder:
         image = _FEDB_BASE.format(folder)
     else:
         image = f"https://placehold.co/640x360/e7ebe8/166534?text={quote_plus(name)}"

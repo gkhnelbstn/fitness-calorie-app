@@ -45,8 +45,12 @@ async def test_workout_media_fields(client, auth) -> None:
         assert e["image_url"] and e["image_url"].startswith("http")
         assert e["youtube_url"].startswith("https://www.youtube.com/results?search_query=")
         assert e["video_url"]
+    # bench-press: wger gerçek foto (öncelikli)
     bench = next(e for e in data if e["slug"] == "bench-press")
-    assert "raw.githubusercontent.com/yuhonas/free-exercise-db" in bench["image_url"]
+    assert "wger.de/media/exercise-images" in bench["image_url"]
+    # squat: wger fotosu yok → free-exercise-db fallback
+    squat = next(e for e in data if e["slug"] == "squat")
+    assert "raw.githubusercontent.com/yuhonas/free-exercise-db" in squat["image_url"]
 
 
 async def test_workout_plan_exercises_have_media(client, auth) -> None:
