@@ -10,6 +10,24 @@ const GOALS = [{ v: 'kilo_ver', l: 'Kilo ver' }, { v: 'kas_yap', l: 'Kas yap' },
 const WDAYS = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
 const mLabel = (k) => (window.MUSCLE_LABELS && window.MUSCLE_LABELS[k]) || k;
 
+// Egzersiz görseli (free-exercise-db) + YouTube "nasıl yapılır" linki
+function ExerciseMedia({ ex, compact }) {
+  const url = ex.youtube_url || ex.video_url;
+  const openVideo = () => { if (url) window.open(url, '_blank', 'noopener,noreferrer'); };
+  return (
+    <div className={cx('relative overflow-hidden rounded-xl bordered surface-2', compact ? 'h-28' : 'h-44 sm:h-56')}>
+      {ex.image_url
+        ? <img src={ex.image_url} alt={ex.name_tr} loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        : <div className="h-full grid place-items-center"><MuscleMap primary={[ex.primary_muscle]} secondary={ex.secondary} size={compact ? 82 : 140} /></div>}
+      {url && (
+        <button onClick={openVideo} className="fr absolute right-2.5 bottom-2.5 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-soft" style={{ background: 'rgba(0,0,0,.64)' }}>
+          <Icon name="play" size={13} />YouTube
+        </button>
+      )}
+    </div>
+  );
+}
+
 // Hareket detay + loglama (kas haritalı + alternatifler + makine tarifi)
 function ExerciseModal({ open, onClose, exercise, onSaved, toast }) {
   const [cur, setCur] = useStateW(exercise);
@@ -34,6 +52,7 @@ function ExerciseModal({ open, onClose, exercise, onSaved, toast }) {
   return (
     <Modal open={open} onClose={onClose} title={cur.name_tr} size="lg" footer={<><Button variant="ghost" onClick={onClose}>Kapat</Button><Button icon="check" onClick={save} disabled={busy}>{busy ? 'Kaydediliyor…' : 'Antrenmana ekle'}</Button></>}>
       <div className="flex flex-col gap-4 pb-2">
+        <ExerciseMedia ex={base} />
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <div className="shrink-0 rounded-2xl surface-2 bordered p-2"><MuscleMap primary={[base.primary_muscle]} secondary={base.secondary} size={150} /></div>
           <div className="flex-1 flex flex-col gap-2.5 w-full">

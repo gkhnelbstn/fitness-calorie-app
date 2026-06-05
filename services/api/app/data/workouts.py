@@ -7,6 +7,7 @@ frontend kas haritası ve filtreleriyle birebir uyumlu.
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import quote_plus
 
 WHO_NOTE = "Haftada en az 150 dk orta veya 75 dk yüksek şiddet + 2 gün kuvvet (WHO)."
 MET = {"kuvvet": 5, "kardiyo": 8}
@@ -349,12 +350,56 @@ def _default_instr(e: dict) -> list[str]:
     ]
 
 
+# slug → free-exercise-db klasör adı (public domain görsel; URL'ler 200 doğrulandı).
+_FEDB_IMG: dict[str, str] = {
+    "bench-press": "Barbell_Bench_Press_-_Medium_Grip",
+    "incline-dumbbell-press": "Incline_Dumbbell_Press",
+    "pull-up": "Pullups",
+    "lat-pulldown": "Wide-Grip_Lat_Pulldown",
+    "overhead-press": "Standing_Military_Press",
+    "squat": "Barbell_Squat",
+    "romanian-deadlift": "Romanian_Deadlift",
+    "plank": "Plank",
+    "bicycle-crunch": "Air_Bike",
+    "dumbbell-curl": "Dumbbell_Bicep_Curl",
+    "tricep-pushdown": "Triceps_Pushdown",
+    "leg-press": "Leg_Press",
+    "dips": "Dips_-_Triceps_Version",
+    "dumbbell-shoulder-press": "Dumbbell_Shoulder_Press",
+    "leg-curl": "Lying_Leg_Curls",
+    "seated-row": "Seated_Cable_Rows",
+    "chest-fly": "Dumbbell_Flyes",
+    "hip-thrust": "Barbell_Hip_Thrust",
+    "jump-rope": "Rope_Jumping",
+    "goblet-squat": "Goblet_Squat",
+}
+_FEDB_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/{}/0.jpg"
+
+
+def _media(e: dict) -> dict[str, str]:
+    # YouTube "nasıl yapılır" araması (parantezli TR ek atılır → temiz sorgu).
+    name = e["name_tr"].split(" (")[0]
+    youtube = f"https://www.youtube.com/results?search_query={quote_plus(name + ' nasıl yapılır')}"
+    folder = _FEDB_IMG.get(e["slug"])
+    if folder:
+        image = _FEDB_BASE.format(folder)
+    else:
+        image = f"https://placehold.co/640x360/e7ebe8/166534?text={quote_plus(name)}"
+    return {
+        "image_url": image,
+        "video_url": youtube,
+        "youtube_url": youtube,
+        "media_caption": "Form videosu (YouTube) + görsel referans",
+    }
+
+
 def enrich(e: dict) -> dict[str, Any]:
     return {
         **e,
         "equipment_type": eq_type(e["equipment"]),
         "instructions": INSTR.get(e["slug"], _default_instr(e)),
         "machine_howto": MACHINE_HOWTO.get(e["slug"]),
+        **_media(e),
     }
 
 
@@ -580,6 +625,9 @@ def _resolve_exercise(e: dict, level: str, is_finisher: bool) -> dict[str, Any]:
         "secondary": enriched.get("secondary", []),
         "instructions": enriched.get("instructions", []),
         "machine_howto": enriched.get("machine_howto"),
+        "image_url": enriched.get("image_url"),
+        "video_url": enriched.get("video_url"),
+        "youtube_url": enriched.get("youtube_url"),
         "sets": sets,
         "reps": e["reps"],
         "rest": e["rest"],

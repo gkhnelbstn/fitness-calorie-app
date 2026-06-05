@@ -38,6 +38,26 @@ async def test_list_workouts_filter(client, auth) -> None:
     assert "equipment_type" in data[0]
 
 
+async def test_workout_media_fields(client, auth) -> None:
+    """Her egzersiz medya alanı taşımalı: görsel + YouTube 'nasıl yapılır' linki."""
+    data = (await client.get("/api/workouts", headers=auth)).json()
+    for e in data:
+        assert e["image_url"] and e["image_url"].startswith("http")
+        assert e["youtube_url"].startswith("https://www.youtube.com/results?search_query=")
+        assert e["video_url"]
+    bench = next(e for e in data if e["slug"] == "bench-press")
+    assert "raw.githubusercontent.com/yuhonas/free-exercise-db" in bench["image_url"]
+
+
+async def test_workout_plan_exercises_have_media(client, auth) -> None:
+    body = (
+        await client.get("/api/workout-plan?goal=kas_yap&level=intermediate", headers=auth)
+    ).json()
+    ex = body["days"][0]["exercises"][0]
+    assert "image_url" in ex
+    assert ex["youtube_url"].startswith("https://www.youtube.com/")
+
+
 async def test_workout_plan_endpoint(client, auth) -> None:
     resp = await client.get(
         "/api/workout-plan?goal=kilo_ver&level=intermediate&days_per_week=4", headers=auth
