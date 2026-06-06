@@ -5,7 +5,7 @@ Karar deterministik (kural motoru). blocked = excluded ∪ blacklist (canonical 
 
 from __future__ import annotations
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import (
@@ -121,6 +121,27 @@ async def adapt_recipe(
     )
 
 
+def _tokens(text: str) -> set[str]:
+    """Ascii kelime token'ları (slugify_tr ile). 'Tavuklu Pide' → {'tavuklu','pide'}."""
+    return {t for t in slugify_tr(text).split("-") if t}
+
+
+def _query_matches(query: str, title: str, ingredient_names: list[str]) -> bool:
+    """Sorgu, başlık VEYA malzemelerde kelime-başı olarak geçiyor mu?
+
+    Kelime-başı eşleşme (substring değil): 'et' → 'etli' eşleşir ama 'spagetti'
+    eşleşmez; 'tavuk' → 'tavuklu' eşleşir. Çok kelimeli sorguda tüm token'lar geçmeli.
+    """
+    q_tokens = _tokens(query)
+    if not q_tokens:
+        return True
+    words: set[str] = set()
+    words |= _tokens(title)
+    for name in ingredient_names:
+        words |= _tokens(name)
+    return all(any(w.startswith(tok) for w in words) for tok in q_tokens)
+
+
 async def search_recipes(
     session: AsyncSession,
     q: str | None,
@@ -130,23 +151,32 @@ async def search_recipes(
     limit: int | None = None,
     offset: int = 0,
 ) -> list[RecipeRead]:
-    """Tarif araması + blacklist adaptasyonu + pagination.
+    """Tarif araması (kelime-başı, başlık + malzeme) + blacklist adaptasyonu + pagination.
 
-    Adaptasyon bazı tarifleri eleyebildiği için sayfalama, uyarlanmış sonuç
-    listesi üzerinde uygulanır (ölçek küçük: yüzlerce tarif).
+    Sorgu başlıkta VEYA malzeme adında kelime-başı olarak geçen tarifler döner;
+    böylece 'tavuk' yalnızca tavuk içeren tarifleri getirir (substring yanlış-pozitifi yok).
     """
     stmt = select(Recipe)
-    if q:
-        # Türkçe karakterler için: slug (ascii) + lower(title) eşleşmesi (OR).
-        q_norm = q.strip().lower()
-        q_slug = slugify_tr(q)
-        clauses = [func.lower(Recipe.title_tr).contains(q_norm)]
-        if q_slug:
-            clauses.append(Recipe.slug.contains(q_slug))
-        stmt = stmt.where(or_(*clauses))
     if category:
         stmt = stmt.where(func.lower(Recipe.category) == category.strip().lower())
     recipes = (await session.execute(stmt.order_by(Recipe.title_tr))).scalars().all()
+
+    if q and q.strip():
+        # Eşleşme için malzeme adlarını toplu yükle (recipe başına ayrı sorgu yerine).
+        ids = [r.id for r in recipes]
+        ing_by_recipe: dict[int, list[str]] = {i: [] for i in ids}
+        if ids:
+            rows = (
+                await session.execute(
+                    select(RecipeIngredient.recipe_id, RecipeIngredient.raw_name).where(
+                        RecipeIngredient.recipe_id.in_(ids)
+                    )
+                )
+            ).all()
+            for rid, raw in rows:
+                ing_by_recipe.setdefault(rid, []).append(raw)
+        recipes = [r for r in recipes if _query_matches(q, r.title_tr, ing_by_recipe.get(r.id, []))]
+
     out: list[RecipeRead] = []
     for rc in recipes:
         adapted = await adapt_recipe(session, rc, blocked)
