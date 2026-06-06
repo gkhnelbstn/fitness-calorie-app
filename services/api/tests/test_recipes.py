@@ -23,7 +23,7 @@ async def test_search_all(client, auth) -> None:
         "imam-bayildi",
         "firinda-somon",
     } <= slugs
-    assert len(slugs) >= 120  # çekirdek + küratör genişletme (EXTRA_RECIPES)
+    assert len(slugs) >= 200  # çekirdek + küratör (EXTRA_RECIPES + EXTRA_RECIPES3)
 
 
 async def test_pagination(client, auth) -> None:
