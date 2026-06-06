@@ -67,6 +67,25 @@ async def test_search_query_filter(client, auth) -> None:
     assert all("menemen" in s for s in slugs)  # hepsi menemen varyantı
 
 
+async def test_search_returns_only_relevant(client, auth) -> None:
+    """'tavuk' araması yalnız başlık VEYA malzemede tavuk geçen tarifleri döndürür."""
+    recipes = (await client.get("/api/recipes?q=tavuk&limit=100", headers=auth)).json()
+    assert recipes
+    for r in recipes:
+        blob = (r["title_tr"] + " " + " ".join(i["raw_name"] for i in r["ingredients"])).lower()
+        assert "tavuk" in blob  # alakasız (tavuksuz) sonuç dönmemeli
+
+
+async def test_search_word_boundary_no_substring(client, auth) -> None:
+    """Kelime-başı eşleşme: 'et' kısa sorgusu 'spagetti/omlet' gibi kelimelerin
+    İÇİNDE eşleşmemeli (substring yanlış-pozitifi yok)."""
+    recipes = (await client.get("/api/recipes?q=et&limit=100", headers=auth)).json()
+    for r in recipes:
+        # dönen her tarifte 'et' ile BAŞLAYAN bir kelime olmalı (etli, et döner…)
+        words = (r["title_tr"] + " " + " ".join(i["raw_name"] for i in r["ingredients"])).lower()
+        assert any(w.startswith("et") for w in words.replace(",", " ").split())
+
+
 async def test_exclude_nonoptional_removes_recipe(client, auth) -> None:
     # yumurta menemen + haşlanmış yumurta'da zorunlu → ikisi de elenir
     resp = await client.get("/api/recipes?exclude=yumurta", headers=auth)
