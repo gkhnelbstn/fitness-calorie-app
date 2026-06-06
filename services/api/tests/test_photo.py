@@ -1,7 +1,5 @@
 """POST /api/meals/photo — multipart upload, dosya saklama, opsiyonel raw_text."""
 
-from pathlib import Path
-
 from app import config
 
 
@@ -14,8 +12,11 @@ async def test_upload_with_raw_text(client, auth, monkeypatch, tmp_path) -> None
     resp = await client.post("/api/meals/photo", headers=auth, files=files, data=data)
     assert resp.status_code == 201
     body = resp.json()
+    # photo_path artık StaticFiles URL'i (/uploads/<uuid>.jpg), dosya upload_dir'de durur.
+    assert body["photo_path"].startswith("/uploads/")
     assert body["photo_path"].endswith(".jpg")
-    assert Path(body["photo_path"]).exists()
+    fname = body["photo_path"].rsplit("/", 1)[-1]
+    assert (tmp_path / fname).exists()
     assert any(i["raw_name"] == "ayran" for i in body["items"])
     assert body["meal_type"] == "atistirma"
 

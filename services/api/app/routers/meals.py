@@ -126,7 +126,7 @@ async def create_meal_with_photo(
         user_id=user.id,
         meal_type=meal_type,
         raw_text=raw_text,
-        photo_path=str(target),
+        photo_path=f"/uploads/{fname}",  # StaticFiles URL (frontend <img> ile yüklenir)
     )
     session.add(log)
     await session.flush()

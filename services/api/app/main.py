@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from . import __version__
 from .config import get_settings
@@ -49,6 +52,10 @@ app.include_router(recommendations.router)
 app.include_router(meal_plans.router)
 app.include_router(admin.router)
 app.include_router(workouts.router)
+
+# Yüklenen öğün fotoğraflarını servis et (frontend <img src> için). upload_dir ./data/photos.
+Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 
 
 @app.get("/", tags=["root"])

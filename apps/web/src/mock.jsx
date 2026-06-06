@@ -651,6 +651,14 @@
     recipes: (q, exclude, offset, limit, live) => request('GET', '/api/recipes', { query: { q, exclude, offset, limit, live: live ? 'true' : undefined } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
     cookWith: (have, exclude) => request('GET', '/api/recipes/cook-with', { query: { have, exclude } }).then((r) => Array.isArray(r) ? { items: r, hidden: [] } : r),
     foodPortions: (name) => request('GET', '/api/foods/portions', { query: { name } }),
+    // Öğün fotoğrafı URL'i: mutlak ise aynen; canlı + /uploads/ ise baseUrl ekle; değilse null.
+    photoUrl: (p) => {
+      if (!p) return null;
+      if (/^https?:\/\//.test(p)) return p;
+      const st = getSettings();
+      if (st.live && st.baseUrl && p.startsWith('/uploads/')) return st.baseUrl.replace(/\/$/, '') + p;
+      return null;
+    },
     blacklist: () => request('GET', '/api/blacklist'),
     addBlacklist: (name) => request('POST', '/api/blacklist', { body: { name } }),
     deleteBlacklist: (canonicalId) => request('DELETE', '/api/blacklist/' + canonicalId),

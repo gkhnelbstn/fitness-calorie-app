@@ -8,6 +8,16 @@ window.macrosOf = macrosOf;
 
 function timeOf(iso) { try { return new Date(iso).toTimeString().slice(0, 5); } catch { return ''; } }
 
+// Öğün küçük görseli: yüklenen foto (canlı /uploads) varsa göster, hata/yoksa çatal-kaşık ikonu.
+function MealThumb({ meal }) {
+  const url = (window.API.photoUrl && window.API.photoUrl(meal.photo_path)) || null;
+  const [err, setErr] = useStateMl(false);
+  if (url && !err) {
+    return <img src={url} alt="öğün" loading="lazy" className="h-14 w-14 shrink-0 rounded-xl object-cover bordered" onError={() => setErr(true)} />;
+  }
+  return <span className="grid place-items-center h-14 w-14 shrink-0 rounded-xl surface-2" style={{ color: 'var(--accent-text)' }}><Icon name="utensils" size={22} /></span>;
+}
+
 function MealCard({ meal, onDelete, onEdit }) {
   const [open, setOpen] = useStateMl(false);
   const [confirm, setConfirm] = useStateMl(false);
@@ -15,9 +25,7 @@ function MealCard({ meal, onDelete, onEdit }) {
   return (
     <Card className="overflow-hidden">
       <div className="p-3.5 flex items-center gap-3.5 group">
-        {meal.photo_path
-          ? <ImgPlaceholder className="h-14 w-14 shrink-0" label="foto" round="rounded-xl" />
-          : <span className="grid place-items-center h-14 w-14 shrink-0 rounded-xl surface-2" style={{ color: 'var(--accent-text)' }}><Icon name="utensils" size={22} /></span>}
+        <MealThumb meal={meal} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap"><MealTypeBadge type={meal.meal_type} />{meal.eaten_at && <span className="text-xs text-muted inline-flex items-center gap-1"><Icon name="clock" size={12} />{timeOf(meal.eaten_at)}</span>}</div>
           <h3 className="font-semibold mt-1 truncate">{meal.raw_text}</h3>
