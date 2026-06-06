@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .data.ingredients_tr import EXTRA_SEED
+from .data.recipes_phase3 import EXTRA_RECIPES3
 from .data.recipes_tr import EXTRA_RECIPES
 from .models import (
     IngredientAliasTr,
@@ -1198,7 +1199,7 @@ RECIPES: list[dict] = [
 async def seed_recipes(session: AsyncSession) -> int:
     """Çekirdek tarifleri ekler (idempotent). Eklenen tarif sayısını döner."""
     added = 0
-    for row in RECIPES + EXTRA_RECIPES:
+    for row in RECIPES + EXTRA_RECIPES + EXTRA_RECIPES3:
         exists = (
             await session.execute(select(Recipe).where(Recipe.slug == row["slug"]))
         ).scalar_one_or_none()
