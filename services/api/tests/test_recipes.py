@@ -44,9 +44,15 @@ async def test_recipe_exposes_new_fields(client, auth) -> None:
     for key in ("category", "cook_minutes", "difficulty", "image_url", "macros_per_serving"):
         assert key in merc
     assert merc["category"] == "çorba"  # tags[0]
-    # total_kcal + servings varsa porsiyon başı kcal türetilir
+    # total_kcal + servings varsa porsiyon başı kcal + makrolar türetilir
     if merc["total_kcal"] and merc["servings"]:
-        assert merc["macros_per_serving"]["kcal"] > 0
+        mps = merc["macros_per_serving"]
+        assert mps["kcal"] > 0
+        # mercimek/soğan vb. besinli → protein & karbonhidrat > 0
+        assert mps["protein_g"] > 0
+        assert mps["carb_g"] > 0
+        assert mps["fat_g"] is not None
+        assert mps["fiber_g"] is not None
 
 
 async def test_category_filter(client, auth) -> None:

@@ -20,6 +20,7 @@ class MacrosPerServing(BaseModel):
     protein_g: float | None = None
     carb_g: float | None = None
     fat_g: float | None = None
+    fiber_g: float | None = None
 
 
 class RecipeRead(BaseModel):

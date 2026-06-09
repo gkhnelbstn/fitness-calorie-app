@@ -100,7 +100,18 @@ async def adapt_recipe(
     ]
     mps = None
     if recipe.total_kcal is not None and recipe.servings:
-        mps = MacrosPerServing(kcal=round(recipe.total_kcal / recipe.servings))
+        n = recipe.servings
+
+        def _per(v: float | None) -> float | None:
+            return round(v / n, 1) if v is not None else None
+
+        mps = MacrosPerServing(
+            kcal=round(recipe.total_kcal / n),
+            protein_g=_per(recipe.total_protein_g),
+            carb_g=_per(recipe.total_carb_g),
+            fat_g=_per(recipe.total_fat_g),
+            fiber_g=_per(recipe.total_fiber_g),
+        )
     return RecipeRead(
         id=recipe.id,
         slug=recipe.slug,
