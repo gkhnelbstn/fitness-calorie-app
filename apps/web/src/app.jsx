@@ -34,7 +34,6 @@ const NAV = [
   { id: 'ozet', label: 'Özet', icon: 'dashboard' },
   { id: 'yemekler', label: 'Yemekler', icon: 'meals' },
   { id: 'antrenman', label: 'Antrenman', icon: 'dumbbell' },
-  { id: 'tarifler', label: 'Tarifler', icon: 'recipes' },
   { id: 'karaliste', label: 'Kara Liste', icon: 'blacklist' },
   { id: 'profil', label: 'Profil', icon: 'profile' },
 ];
@@ -112,6 +111,28 @@ function TopBar({ dark, setDark, onSettings, onPlan, user, onLogout }) {
   );
 }
 
+// Yemekler = Günlük (loglanan öğünler) + Tarifler (katalog/keşfet) tek sekmede.
+function MealsHub({ date, setDate, demoState, onAddMeal, onEditMeal, refreshKey, toast, reloadAll, sub, setSub }) {
+  const logRecipe = async (r) => {
+    try {
+      const kcal = (r.macros_per_serving && r.macros_per_serving.kcal)
+        || (r.total_kcal && r.servings ? Math.round(r.total_kcal / r.servings) : 0);
+      await API.addMeal({ items: [{ raw_name: r.title_tr, quantity: 1, unit: 'porsiyon', kcal, protein_g: 0, carb_g: 0, fat_g: 0, confidence: 1 }] }, date);
+      toast(`Öğüne eklendi: ${r.title_tr} (~${kcal} kcal)`);
+      reloadAll();
+      setSub('gunluk');
+    } catch (e) { toast('Eklenemedi: ' + (e.message || e), 'error'); }
+  };
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="max-w-sm"><Segmented value={sub} onChange={setSub} options={[{ value: 'gunluk', label: 'Günlük', icon: 'meals' }, { value: 'tarifler', label: 'Tarifler', icon: 'recipes' }]} /></div>
+      {sub === 'tarifler'
+        ? <RecipesScreen key={'r' + refreshKey} demoState={demoState} onLog={logRecipe} />
+        : <MealsScreen key={'m' + refreshKey + date} date={date} setDate={setDate} demoState={demoState} onAddMeal={onAddMeal} onEditMeal={onEditMeal} refreshKey={refreshKey} />}
+    </div>
+  );
+}
+
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [user, login, logout] = useAuth();
@@ -123,12 +144,14 @@ function App() {
   const [wizardOpen, setWizardOpen] = useS(false);
   const [setOpen, setSetOpen] = useS(false);
   const [planOpen, setPlanOpen] = useS(false);
+  const [mealsSub, setMealsSub] = useS(() => localStorage.getItem('fk.mealsSub') || 'gunluk');
   const [refreshKey, setRefreshKey] = useS(0);
   const [toast, toastNode] = useToast();
 
   useE(() => { applyTheme(t, dark); }, [t.accent, t.surfaceTone, dark]);
   useE(() => { localStorage.setItem('fk.dark', dark ? '1' : '0'); }, [dark]);
   useE(() => { localStorage.setItem('fk.route', route); }, [route]);
+  useE(() => { localStorage.setItem('fk.mealsSub', mealsSub); }, [mealsSub]);
 
   const demoState = 'normal';
   const reloadAll = () => setRefreshKey((k) => k + 1);
@@ -138,10 +161,9 @@ function App() {
   const screen = (() => {
     const k = refreshKey + date;
     switch (route) {
-      case 'ozet': return <DashboardScreen key={'d' + k} date={date} setDate={setDate} demoState={demoState} ringLayout={t.macroStyle} onAddMeal={() => setAddOpen(true)} onOpenWizard={() => setWizardOpen(true)} onGoWorkout={() => setRoute('antrenman')} onGoRecipes={() => setRoute('tarifler')} />;
-      case 'yemekler': return <MealsScreen key={'m' + k} date={date} setDate={setDate} demoState={demoState} onAddMeal={() => setAddOpen(true)} onEditMeal={setEditMeal} refreshKey={refreshKey} />;
+      case 'ozet': return <DashboardScreen key={'d' + k} date={date} setDate={setDate} demoState={demoState} ringLayout={t.macroStyle} onAddMeal={() => setAddOpen(true)} onOpenWizard={() => setWizardOpen(true)} onGoWorkout={() => setRoute('antrenman')} onGoRecipes={() => { setMealsSub('tarifler'); setRoute('yemekler'); }} />;
+      case 'yemekler': return <MealsHub key={'m' + k} date={date} setDate={setDate} demoState={demoState} onAddMeal={() => setAddOpen(true)} onEditMeal={setEditMeal} refreshKey={refreshKey} toast={toast} reloadAll={reloadAll} sub={mealsSub} setSub={setMealsSub} />;
       case 'antrenman': return <WorkoutScreen key={'w' + k} date={date} setDate={setDate} demoState={demoState} toast={toast} />;
-      case 'tarifler': return <RecipesScreen key={'r' + refreshKey} demoState={demoState} />;
       case 'karaliste': return <BlacklistScreen key={'b' + refreshKey} demoState={demoState} />;
       case 'profil': return <ProfileScreen key={'p' + refreshKey} demoState={demoState} toast={toast} onOpenWizard={() => setWizardOpen(true)} refreshKey={refreshKey} />;
       default: return null;

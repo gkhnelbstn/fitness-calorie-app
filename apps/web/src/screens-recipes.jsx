@@ -21,9 +21,11 @@ function IngredientRow({ ing }) {
   return <li className="flex items-center gap-2 text-sm"><span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: 'var(--accent)' }} /><span>{qty}{ing.raw_name}</span>{ing.optional && <span className="text-xs text-muted">(opsiyonel)</span>}</li>;
 }
 
-function RecipeCard({ recipe, defaultOpen }) {
+function RecipeCard({ recipe, defaultOpen, onLog }) {
   const [open, setOpen] = useStateR(defaultOpen || false);
+  const [logging, setLogging] = useStateR(false);
   const mps = recipe.macros_per_serving || (recipe.total_kcal && recipe.servings ? { kcal: Math.round(recipe.total_kcal / recipe.servings) } : null);
+  const doLog = async () => { if (!onLog) return; setLogging(true); try { await onLog(recipe); } finally { setLogging(false); } };
   return (
     <Card className="overflow-hidden flex flex-col">
       <div className="flex gap-4 p-4 sm:p-5">
@@ -66,6 +68,14 @@ function RecipeCard({ recipe, defaultOpen }) {
         </div>
       )}
 
+      {onLog && (
+        <div className="px-4 sm:px-5 mt-3">
+          <button onClick={doLog} disabled={logging} className="fr w-full inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white shadow-soft transition hover:brightness-105 disabled:opacity-60" style={{ background: 'var(--accent)' }}>
+            <Icon name="plus" size={16} stroke={2.5} />{logging ? 'Ekleniyor…' : `Öğün olarak ekle${mps ? ` · ${mps.kcal} kcal` : ''}`}
+          </button>
+        </div>
+      )}
+
       <button onClick={() => setOpen(!open)} className="fr flex items-center justify-between px-4 sm:px-5 py-3 mt-3 bordered border-l-0 border-r-0 border-b-0 text-sm font-semibold hover:bg-[var(--surface-2)] transition">
         <span className="inline-flex items-center gap-2"><Icon name="recipes" size={15} className="text-accent-text" />Hazırlanışı ({recipe.steps.length} adım)</span>
         <span className={cx('transition-transform', open && 'rotate-180')}><Icon name="chevronD" size={18} /></span>
@@ -75,7 +85,7 @@ function RecipeCard({ recipe, defaultOpen }) {
   );
 }
 
-function RecipesScreen({ demoState }) {
+function RecipesScreen({ demoState, onLog }) {
   const [tab, setTab] = useStateR('ara');
   const [q, setQ] = useStateR('');
   const [exclude, setExclude] = useStateR([]);
@@ -174,7 +184,7 @@ function RecipesScreen({ demoState }) {
             {list.length === 0
               ? <Card className="p-2"><EmptyState icon="recipes" title={hidden.length ? 'Uygun tarif kalmadı' : (tab === 'ara' ? 'Tarif bulunamadı' : 'Eşleşen tarif yok')} hint={hidden.length ? 'Tüm sonuçlar kara liste/istenmeyen malzeme nedeniyle gizlendi.' : (tab === 'ara' ? 'Farklı bir arama dene.' : 'Elindeki malzemeleri ekleyince uygun tarifleri göstereceğiz.')} /></Card>
               : <>
-                  <div className="grid gap-4 lg:grid-cols-2">{list.map((r, i) => <RecipeCard key={r.id != null ? r.id : (r.slug || i)} recipe={r} defaultOpen={list.length === 1} />)}</div>
+                  <div className="grid gap-4 lg:grid-cols-2">{list.map((r, i) => <RecipeCard key={r.id != null ? r.id : (r.slug || i)} recipe={r} defaultOpen={list.length === 1} onLog={onLog} />)}</div>
                   {hasMore && (
                     <button onClick={() => fetchRecipes(sOffset, false)} disabled={sLoading} className="fr mx-auto mt-4 inline-flex items-center gap-2 rounded-xl bordered surface px-5 py-3 text-sm font-semibold hover:bg-[var(--surface-2)] disabled:opacity-60">
                       {sLoading ? 'Yükleniyor…' : 'Daha fazla tarif'}<Icon name="chevronD" size={16} />
