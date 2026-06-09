@@ -15,7 +15,7 @@ from ..adapters.spoonacular import SpoonacularAdapter
 from ..adapters.themealdb import TheMealDbAdapter
 from ..data.food_terms import resolve_query
 from ..models import Recipe, RecipeIngredient, RecipeStepTr, RecipeTag
-from .recipe_kcal import compute_recipe_kcal
+from .recipe_kcal import compute_recipe_macros
 from .resolver import get_or_create_canonical
 from .sources import get_or_create_source
 from .text import slugify_tr
@@ -94,9 +94,13 @@ async def _recompute_kcal(session: AsyncSession) -> None:
         (await session.execute(select(Recipe).where(Recipe.total_kcal.is_(None)))).scalars().all()
     )
     for rc in recipes:
-        kcal = await compute_recipe_kcal(session, rc.id)
-        if kcal is not None:
-            rc.total_kcal = kcal
+        macros = await compute_recipe_macros(session, rc.id)
+        if macros is not None:
+            rc.total_kcal = macros["kcal"]
+            rc.total_protein_g = macros["protein_g"]
+            rc.total_carb_g = macros["carb_g"]
+            rc.total_fat_g = macros["fat_g"]
+            rc.total_fiber_g = macros["fiber_g"]
 
 
 async def import_themealdb(

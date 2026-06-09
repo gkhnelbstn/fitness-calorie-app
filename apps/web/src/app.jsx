@@ -115,9 +115,10 @@ function TopBar({ dark, setDark, onSettings, onPlan, user, onLogout }) {
 function MealsHub({ date, setDate, demoState, onAddMeal, onEditMeal, refreshKey, toast, reloadAll, sub, setSub }) {
   const logRecipe = async (r) => {
     try {
-      const kcal = (r.macros_per_serving && r.macros_per_serving.kcal)
+      const mps = r.macros_per_serving || {};
+      const kcal = mps.kcal
         || (r.total_kcal && r.servings ? Math.round(r.total_kcal / r.servings) : 0);
-      await API.addMeal({ items: [{ raw_name: r.title_tr, quantity: 1, unit: 'porsiyon', kcal, protein_g: 0, carb_g: 0, fat_g: 0, confidence: 1 }] }, date);
+      await API.addMeal({ items: [{ raw_name: r.title_tr, quantity: 1, unit: 'porsiyon', kcal, protein_g: mps.protein_g || 0, carb_g: mps.carb_g || 0, fat_g: mps.fat_g || 0, confidence: 1 }] }, date);
       toast(`Öğüne eklendi: ${r.title_tr} (~${kcal} kcal)`);
       reloadAll();
       setSub('gunluk');
