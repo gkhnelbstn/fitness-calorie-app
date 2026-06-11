@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import CurrentUser, get_current_profile, get_current_user
 from ..db import get_session
 from ..models import UserGoal, UserPreference
 from ..schemas.profile import (
@@ -15,10 +16,8 @@ from ..schemas.profile import (
     ProfileRead,
     ProfileUpdate,
 )
-from ..security import require_token
-from ..services.user import get_or_create_default_user
 
-router = APIRouter(prefix="/api", tags=["profile"], dependencies=[Depends(require_token)])
+router = APIRouter(prefix="/api", tags=["profile"], dependencies=[Depends(get_current_user)])
 
 PLAN_PREF_KEY = "goal_plan"
 
@@ -37,16 +36,20 @@ def _profile_read(user) -> ProfileRead:
 
 
 @router.get("/profile", response_model=ProfileRead)
-async def get_profile(session: AsyncSession = Depends(get_session)) -> ProfileRead:
-    user = await get_or_create_default_user(session)
+async def get_profile(
+    cu: CurrentUser = Depends(get_current_user), session: AsyncSession = Depends(get_session)
+) -> ProfileRead:
+    user = await get_current_profile(cu, session)
     return _profile_read(user)
 
 
 @router.put("/profile", response_model=ProfileRead)
 async def update_profile(
-    payload: ProfileUpdate, session: AsyncSession = Depends(get_session)
+    payload: ProfileUpdate,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> ProfileRead:
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     for field, value in payload.model_dump(exclude_unset=True).items():
         if value is not None:
             setattr(user, field, value)
@@ -70,8 +73,10 @@ async def _active_goal(session: AsyncSession, user_id: int) -> UserGoal | None:
 
 
 @router.get("/goal", response_model=GoalRead)
-async def get_goal(session: AsyncSession = Depends(get_session)) -> GoalRead:
-    user = await get_or_create_default_user(session)
+async def get_goal(
+    cu: CurrentUser = Depends(get_current_user), session: AsyncSession = Depends(get_session)
+) -> GoalRead:
+    user = await get_current_profile(cu, session)
     goal = await _active_goal(session, user.id)
     if goal is None:
         raise HTTPException(status_code=404, detail="Aktif hedef yok.")
@@ -100,9 +105,11 @@ async def _plan_pref(session: AsyncSession, user_id: int) -> UserPreference | No
 
 
 @router.get("/goal/plan")
-async def get_goal_plan(session: AsyncSession = Depends(get_session)) -> dict | None:
+async def get_goal_plan(
+    cu: CurrentUser = Depends(get_current_user), session: AsyncSession = Depends(get_session)
+) -> dict | None:
     """Kayıtlı hedef/antrenman planını döndür (yoksa null)."""
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     pref = await _plan_pref(session, user.id)
     value = pref.value if pref else None
     return value if isinstance(value, dict) else None
@@ -110,10 +117,12 @@ async def get_goal_plan(session: AsyncSession = Depends(get_session)) -> dict | 
 
 @router.put("/goal/plan")
 async def set_goal_plan(
-    payload: GoalPlanUpdate, session: AsyncSession = Depends(get_session)
+    payload: GoalPlanUpdate,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> dict:
     """Planı kısmi güncelle: gelen alanlar mevcut planla birleştirilir."""
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     pref = await _plan_pref(session, user.id)
     incoming = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
     current = pref.value if pref and isinstance(pref.value, dict) else {}
@@ -127,8 +136,12 @@ async def set_goal_plan(
 
 
 @router.put("/goal", response_model=GoalRead, status_code=status.HTTP_201_CREATED)
-async def set_goal(payload: GoalUpdate, session: AsyncSession = Depends(get_session)) -> GoalRead:
-    user = await get_or_create_default_user(session)
+async def set_goal(
+    payload: GoalUpdate,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> GoalRead:
+    user = await get_current_profile(cu, session)
     # Önceki aktif hedefleri pasifleştir
     await session.execute(update(UserGoal).where(UserGoal.user_id == user.id).values(active=False))
     goal = UserGoal(

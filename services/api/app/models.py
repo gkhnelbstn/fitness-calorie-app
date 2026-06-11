@@ -44,6 +44,9 @@ class UserProfile(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    supabase_uid: Mapped[str | None] = mapped_column(
+        String(36), unique=True, index=True, nullable=True
+    )
     sex: Mapped[str | None] = mapped_column(String(16), nullable=True)
     birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     height_cm: Mapped[float | None] = mapped_column(Float, nullable=True)

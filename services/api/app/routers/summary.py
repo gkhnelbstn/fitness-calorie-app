@@ -10,21 +10,24 @@ from datetime import date as date_cls
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import CurrentUser, get_current_profile, get_current_user
 from ..db import get_session
 from ..schemas.summary import DailySummary
-from ..security import require_token
 from ..services.intake import daily_intake
-from ..services.user import get_or_create_default_user
 
-router = APIRouter(prefix="/api/summary", tags=["summary"], dependencies=[Depends(require_token)])
+router = APIRouter(
+    prefix="/api/summary", tags=["summary"], dependencies=[Depends(get_current_user)]
+)
 
 
 @router.get("", response_model=DailySummary)
 async def daily_summary(
-    date: str | None = None, session: AsyncSession = Depends(get_session)
+    date: str | None = None,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> DailySummary:
     day = date or date_cls.today().isoformat()
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     intake = await daily_intake(session, user.id, day)
     return DailySummary(
         day=day,

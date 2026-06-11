@@ -32,9 +32,11 @@ app = FastAPI(
     description="Free-first modüler monolit backend.",
 )
 
-# CORS — Flutter web (lokal dev). flutter run -d chrome rastgele port açar.
+# CORS — dev: localhost (her port); prod: CORS_ORIGINS env (Vercel domaini).
+# allow_credentials ile wildcard yasak → origin'ler enumerate edilir.
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=get_settings().cors_origin_list,
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],

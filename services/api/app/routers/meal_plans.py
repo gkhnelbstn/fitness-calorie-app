@@ -8,6 +8,7 @@ from datetime import date as date_cls
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import CurrentUser, get_current_profile, get_current_user
 from ..db import get_session
 from ..models import MealLog
 from ..schemas.meal_plan import (
@@ -17,14 +18,12 @@ from ..schemas.meal_plan import (
     PlanPreviewRequest,
     PlanPreviewResponse,
 )
-from ..security import require_token
 from ..services.extract import extract_items
 from ..services.meal_items import build_meal_log_item
 from ..services.meal_plan import parse_plan
-from ..services.user import get_or_create_default_user
 
 router = APIRouter(
-    prefix="/api/meal-plans", tags=["meal-plans"], dependencies=[Depends(require_token)]
+    prefix="/api/meal-plans", tags=["meal-plans"], dependencies=[Depends(get_current_user)]
 )
 
 
@@ -39,9 +38,11 @@ async def preview(payload: PlanPreviewRequest) -> PlanPreviewResponse:
 
 @router.post("/apply", response_model=PlanApplyResponse)
 async def apply(
-    payload: PlanApplyRequest, session: AsyncSession = Depends(get_session)
+    payload: PlanApplyRequest,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> PlanApplyResponse:
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     parsed = parse_plan(payload.text)
     base = date_cls.fromisoformat(payload.base_date) if payload.base_date else date_cls.today()
     created_ids: list[int] = []

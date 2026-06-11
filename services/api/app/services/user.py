@@ -1,8 +1,9 @@
-"""Tek kullanıcı (Faz 0/1) — varsayılan kullanıcıyı getir/oluştur."""
+"""Kullanıcı çözümleme — legacy varsayılan kullanıcı + Supabase auth eşlemesi."""
 
 from __future__ import annotations
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import UserProfile
@@ -18,4 +19,37 @@ async def get_or_create_default_user(session: AsyncSession) -> UserProfile:
         user = UserProfile(name=DEFAULT_USER_NAME, locale="tr")
         session.add(user)
         await session.flush()
+    return user
+
+
+async def get_or_create_user_by_auth(
+    session: AsyncSession, sub: str, email: str | None
+) -> UserProfile:
+    """Supabase kullanıcı UUID'sini (sub) lokal UserProfile'a eşle; yoksa oluştur."""
+    user = (
+        await session.execute(select(UserProfile).where(UserProfile.supabase_uid == sub))
+    ).scalar_one_or_none()
+    if user is not None:
+        return user
+
+    name = (email or "").split("@")[0] or "Kullanıcı"
+    user = UserProfile(name=name, email=email, supabase_uid=sub, locale="tr")
+    try:
+        # SAVEPOINT: çakışmada yalnız bu insert geri alınır, request transaction'ı yaşar.
+        async with session.begin_nested():
+            session.add(user)
+    except IntegrityError:
+        # Yarış (aynı sub iki istekte) VEYA email zaten kayıtlı (hesap bağlama).
+        user = (
+            await session.execute(select(UserProfile).where(UserProfile.supabase_uid == sub))
+        ).scalar_one_or_none()
+        if user is None and email:
+            user = (
+                await session.execute(select(UserProfile).where(UserProfile.email == email))
+            ).scalar_one_or_none()
+            if user is not None and user.supabase_uid is None:
+                user.supabase_uid = sub  # mevcut email hesabını Supabase kimliğine bağla
+                await session.flush()
+        if user is None:
+            raise
     return user
