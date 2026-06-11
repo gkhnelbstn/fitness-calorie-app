@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ from ..models import FoodProduct, MealLog, MealLogItem, NutritionProfile
 from ..schemas.meal import BarcodeMealCreate, MealCreate, MealItem, MealRead, MealUpdate
 from ..security import require_token
 from ..services.extract import extract_items
+from ..services.intake import day_bounds
 from ..services.meal_items import build_meal_log_item as _build_item
 from ..services.meal_parser import ParsedItem
 from ..services.resolver import get_or_create_canonical, resolve_canonical
@@ -256,7 +257,8 @@ async def list_meals(
     user = await get_or_create_default_user(session)
     stmt = select(MealLog).where(MealLog.user_id == user.id)
     if date:
-        stmt = stmt.where(func.date(MealLog.eaten_at) == date)
+        start, end = day_bounds(date)
+        stmt = stmt.where(MealLog.eaten_at >= start, MealLog.eaten_at < end)
     stmt = stmt.order_by(MealLog.eaten_at.desc())
 
     logs = (await session.execute(stmt)).scalars().all()

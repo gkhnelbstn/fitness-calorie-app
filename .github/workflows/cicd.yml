@@ -51,6 +51,38 @@ jobs:
           path: services/api/coverage.xml
           if-no-files-found: ignore
 
+  test-postgres:
+    name: Postgres compat (migrate + seed + smoke)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: fit
+          POSTGRES_PASSWORD: fit
+          POSTGRES_DB: fit
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U fit"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://fit:fit@localhost:5432/fit
+      PG_TEST_URL: postgresql+asyncpg://fit:fit@localhost:5432/fit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Alembic migration on Postgres
+        run: uv run alembic upgrade head
+      - name: Seed on Postgres (idempotent)
+        run: uv run python -m app.seeds
+      - name: PG smoke tests
+        run: uv run pytest tests/test_pg_smoke.py -q --no-cov -p no:cacheprovider
+
   security:
     name: Security (bandit, pip-audit, gitleaks)
     runs-on: ubuntu-latest
