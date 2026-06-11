@@ -3,6 +3,7 @@
 // ÖNEMLİ: globals.js ilk import olmalı (React/ReactDOM window'a oradan kurulur).
 import './globals.js';
 import './styles.css';
+import './supabase.js'; // window.supabase (env yoksa null → mock auth)
 import '../tweaks-panel.jsx';
 import './mock.jsx';
 import './ai.jsx';
