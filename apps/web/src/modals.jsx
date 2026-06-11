@@ -130,7 +130,9 @@ function AddMealModal({ open, onClose, date, onAdded, toast, methodStyle = 'tabs
       else if (tab === 'porsiyon') meal = await API.addMeal({ items, meal_type: mealType || undefined }, date);
       else if (tab === 'barkod') meal = await API.addMealBarcode(barcode, grams || 100, mealType || undefined, date);
       else meal = await API.addMealPhoto({ raw_text: photoDesc, meal_type: mealType || undefined }, date);
-      toast(`Eklendi: ${Math.round(meal.total_kcal || 0)} kcal`); onAdded(meal); close();
+      toast(`Eklendi: ${Math.round(meal.total_kcal || 0)} kcal`);
+      window.analytics?.trackEvent('meal_added', { method: tab, kcal: Math.round(meal.total_kcal || 0) });
+      onAdded(meal); close();
     } catch (e) { toast('Eklenemedi: ' + e.message, 'error'); } finally { setBusy(false); }
   };
 

@@ -214,7 +214,7 @@ function WorkoutScreen({ date, setDate, demoState, toast }) {
   const burned = logList.reduce((a, l) => a + (l.kcal || 0), 0);
   const doneMin = logList.reduce((a, l) => a + (l.minutes || 0), 0);
 
-  const saveLog = async (payload) => { const r = await API.addWorkoutLog(payload, date); setLogKey((k) => k + 1); return r; };
+  const saveLog = async (payload) => { const r = await API.addWorkoutLog(payload, date); window.analytics?.trackEvent('workout_logged', { exercise: payload.template_slug || payload.name, minutes: payload.minutes }); setLogKey((k) => k + 1); return r; };
   const delLog = async (l) => { logs.setData(logList.filter((x) => x.id !== l.id)); try { await API.deleteWorkoutLog(l.id); } catch { logs.reload(); } };
 
   return (

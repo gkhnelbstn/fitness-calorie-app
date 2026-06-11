@@ -111,6 +111,22 @@ function TopBar({ dark, setDark, onSettings, onPlan, user, onLogout }) {
   );
 }
 
+// Çerez/analitik onayı (Consent Mode v2) — yalnız GA aktifken ve henüz sorulmamışsa.
+function ConsentBanner() {
+  const [visible, setVisible] = useS(() => !!(window.analytics?.enabled && !window.analytics.consentAsked()));
+  if (!visible) return null;
+  const answer = (ok) => { window.analytics.setConsent(ok); setVisible(false); };
+  return (
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:max-w-sm z-50 surface bordered rounded-2xl shadow-softlg p-4 anim-pop">
+      <p className="text-sm">Deneyimi iyileştirmek için anonim kullanım istatistikleri toplayabilir miyiz? (Google Analytics)</p>
+      <div className="flex gap-2 mt-3">
+        <button onClick={() => answer(true)} className="fr flex-1 h-10 rounded-xl font-semibold text-white text-sm" style={{ background: 'var(--accent)' }}>Kabul et</button>
+        <button onClick={() => answer(false)} className="fr flex-1 h-10 rounded-xl font-semibold text-sm bordered hover:bg-[var(--surface-2)]">Reddet</button>
+      </div>
+    </div>
+  );
+}
+
 // Yemekler = Günlük (loglanan öğünler) + Tarifler (katalog/keşfet) tek sekmede.
 function MealsHub({ date, setDate, demoState, onAddMeal, onEditMeal, refreshKey, toast, reloadAll, sub, setSub }) {
   const logRecipe = async (r) => {
@@ -120,6 +136,7 @@ function MealsHub({ date, setDate, demoState, onAddMeal, onEditMeal, refreshKey,
         || (r.total_kcal && r.servings ? Math.round(r.total_kcal / r.servings) : 0);
       await API.addMeal({ items: [{ raw_name: r.title_tr, quantity: 1, unit: 'porsiyon', kcal, protein_g: mps.protein_g || 0, carb_g: mps.carb_g || 0, fat_g: mps.fat_g || 0, confidence: 1 }] }, date);
       toast(`Öğüne eklendi: ${r.title_tr} (~${kcal} kcal)`);
+      window.analytics?.trackEvent('recipe_logged', { recipe: r.slug || r.title_tr, kcal });
       reloadAll();
       setSub('gunluk');
     } catch (e) { toast('Eklenemedi: ' + (e.message || e), 'error'); }
@@ -151,7 +168,7 @@ function App() {
 
   useE(() => { applyTheme(t, dark); }, [t.accent, t.surfaceTone, dark]);
   useE(() => { localStorage.setItem('fk.dark', dark ? '1' : '0'); }, [dark]);
-  useE(() => { localStorage.setItem('fk.route', route); }, [route]);
+  useE(() => { localStorage.setItem('fk.route', route); window.analytics?.trackPageView(route); }, [route]);
   useE(() => { localStorage.setItem('fk.mealsSub', mealsSub); }, [mealsSub]);
 
   const demoState = 'normal';
@@ -197,6 +214,7 @@ function App() {
       <MealPlanModal open={planOpen} onClose={() => setPlanOpen(false)} toast={toast} onApplied={reloadAll} />
 
       {toastNode}
+      <ConsentBanner />
 
       <TweaksPanel>
         <TweakSection label="Görsel stil" />
