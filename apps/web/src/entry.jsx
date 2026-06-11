@@ -4,6 +4,7 @@
 import './globals.js';
 import './styles.css';
 import './supabase.js'; // window.supabase (env yoksa null → mock auth)
+import './analytics.js'; // window.analytics (GA id yoksa no-op)
 import '../tweaks-panel.jsx';
 import './mock.jsx';
 import './ai.jsx';
