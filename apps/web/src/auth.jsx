@@ -1,14 +1,56 @@
-// auth.jsx — Basit kullanıcı sistemi (prototip): Google + e-posta/şifre giriş kapısı.
-// NOT: Gerçek Google OAuth + backend oturumu önerilir; burada localStorage tabanlı mock oturum.
+// auth.jsx — Kullanıcı oturumu.
+// Supabase yapılandırılmışsa (window.supabase) gerçek auth: e-posta/şifre + Google OAuth.
+// Yapılandırılmamışsa (env yok) eski localStorage-mock akışı sürer (offline demo).
 const { useState: useAuthState } = React;
 
 const AUTH_KEY = 'fk.auth';
+const SB = () => window.supabase || null;
+
+function _initial(nameOrEmail) {
+  return (nameOrEmail || '?').trim()[0].toUpperCase();
+}
+
+function mapSbUser(u) {
+  const meta = u.user_metadata || {};
+  const name = meta.full_name || meta.name || (u.email || '').split('@')[0] || 'Misafir';
+  return {
+    name,
+    email: u.email || '',
+    initial: _initial(name || u.email),
+    provider: (u.app_metadata && u.app_metadata.provider) || 'email',
+  };
+}
 
 function useAuth() {
-  const [user, setUser] = useAuthState(() => { try { return JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch { return null; } });
-  const login = (u) => { const full = { ...u, initial: (u.name || u.email || '?').trim()[0].toUpperCase() }; localStorage.setItem(AUTH_KEY, JSON.stringify(full)); setUser(full); };
-  const logout = () => { localStorage.removeItem(AUTH_KEY); setUser(null); };
-  return [user, login, logout];
+  const sb = SB();
+  // Supabase modunda: undefined = oturum çözülüyor (loading).
+  const [user, setUser] = useAuthState(() => {
+    if (sb) return undefined;
+    try { return JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch { return null; }
+  });
+
+  React.useEffect(() => {
+    if (!sb) return;
+    sb.auth.getSession().then(({ data }) => setUser(data.session ? mapSbUser(data.session.user) : null));
+    const { data: sub } = sb.auth.onAuthStateChange((_ev, session) => {
+      setUser(session ? mapSbUser(session.user) : null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const login = (u) => {
+    if (sb) return; // Supabase modunda oturum onAuthStateChange ile gelir.
+    const full = { ...u, initial: _initial(u.name || u.email) };
+    localStorage.setItem(AUTH_KEY, JSON.stringify(full));
+    setUser(full);
+  };
+  const logout = async () => {
+    if (sb) { try { await sb.auth.signOut(); } catch {} }
+    localStorage.removeItem(AUTH_KEY);
+    setUser(null);
+  };
+  const loading = !!sb && user === undefined;
+  return [user === undefined ? null : user, login, logout, loading];
 }
 window.useAuth = useAuth;
 
@@ -29,15 +71,58 @@ const SAMPLE_ACCOUNTS = [
 ];
 
 function AuthScreen({ onAuthed }) {
+  const sb = SB();
   const [view, setView] = useAuthState('main'); // main | google | email
+  const [mode, setMode] = useAuthState('signin'); // signin | signup (yalnız Supabase)
   const [email, setEmail] = useAuthState('');
   const [pass, setPass] = useAuthState('');
   const [err, setErr] = useAuthState('');
+  const [info, setInfo] = useAuthState('');
+  const [busy, setBusy] = useAuthState(false);
 
-  const emailLogin = () => {
+  const emailLogin = async () => {
     if (!/.+@.+\..+/.test(email)) { setErr('Geçerli bir e-posta gir.'); return; }
-    if (pass.length < 4) { setErr('Şifre en az 4 karakter olmalı.'); return; }
-    onAuthed({ name: email.split('@')[0].replace(/[._]/g, ' '), email, provider: 'email' });
+    if (!sb) {
+      if (pass.length < 4) { setErr('Şifre en az 4 karakter olmalı.'); return; }
+      onAuthed({ name: email.split('@')[0].replace(/[._]/g, ' '), email, provider: 'email' });
+      return;
+    }
+    if (pass.length < 6) { setErr('Şifre en az 6 karakter olmalı.'); return; }
+    setBusy(true); setErr(''); setInfo('');
+    try {
+      if (mode === 'signup') {
+        const { data, error } = await sb.auth.signUp({ email, password: pass });
+        if (error) throw error;
+        if (!data.session) setInfo('Doğrulama e-postası gönderildi. Gelen kutunu kontrol et.');
+        // session varsa onAuthStateChange oturumu açar
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
+      }
+    } catch (e) {
+      const m = (e && e.message) || '';
+      setErr(/invalid login credentials/i.test(m) ? 'E-posta veya şifre hatalı.' : (m || 'Giriş başarısız.'));
+    } finally { setBusy(false); }
+  };
+
+  const googleLogin = async () => {
+    if (!sb) { setView('google'); return; } // mock: örnek hesap seçimi
+    setBusy(true); setErr('');
+    try {
+      const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+      if (error) throw error; // başarılıysa sayfa Google'a yönlenir
+    } catch (e) { setErr((e && e.message) || 'Google girişi başarısız.'); setBusy(false); }
+  };
+
+  const guestLogin = async () => {
+    if (!sb) { onAuthed({ name: 'Misafir', email: 'misafir@fitkoc.app', provider: 'guest' }); return; }
+    setBusy(true); setErr('');
+    try {
+      const { error } = await sb.auth.signInAnonymously();
+      if (error) throw error;
+    } catch {
+      setErr('Misafir girişi kapalı. E-posta ya da Google ile devam et.');
+    } finally { setBusy(false); }
   };
 
   return (
@@ -52,14 +137,15 @@ function AuthScreen({ onAuthed }) {
           {view === 'main' && (
             <div className="anim-fade flex flex-col gap-4">
               <div className="text-center"><h1 className="font-display font-bold text-xl">Hoş geldin</h1><p className="text-muted text-sm mt-1">Hesabına giriş yap veya kaydol.</p></div>
-              <button onClick={() => setView('google')} className="fr flex items-center justify-center gap-3 h-12 rounded-xl bordered surface font-semibold hover:bg-[var(--surface-2)] transition"><GoogleMark />Google ile devam et</button>
+              <button disabled={busy} onClick={googleLogin} className="fr flex items-center justify-center gap-3 h-12 rounded-xl bordered surface font-semibold hover:bg-[var(--surface-2)] transition disabled:opacity-60"><GoogleMark />Google ile devam et</button>
               <div className="flex items-center gap-3 text-xs text-muted"><div className="flex-1 h-px" style={{ background: 'var(--border)' }} />veya<div className="flex-1 h-px" style={{ background: 'var(--border)' }} /></div>
-              <button onClick={() => setView('email')} className="fr flex items-center justify-center gap-2 h-12 rounded-xl font-semibold text-white transition hover:brightness-105" style={{ background: 'var(--accent)' }}><Icon name="meals" size={18} />E-posta ile giriş</button>
-              <button onClick={() => onAuthed({ name: 'Misafir', email: 'misafir@fitkoc.app', provider: 'guest' })} className="fr text-sm font-semibold text-muted hover:text-[var(--text)]">Misafir olarak dene</button>
+              <button disabled={busy} onClick={() => setView('email')} className="fr flex items-center justify-center gap-2 h-12 rounded-xl font-semibold text-white transition hover:brightness-105 disabled:opacity-60" style={{ background: 'var(--accent)' }}><Icon name="meals" size={18} />E-posta ile giriş</button>
+              <button disabled={busy} onClick={guestLogin} className="fr text-sm font-semibold text-muted hover:text-[var(--text)] disabled:opacity-60">Misafir olarak dene</button>
+              {err && <div className="text-xs font-medium text-center" style={{ color: 'var(--c-fat)' }}>{err}</div>}
             </div>
           )}
 
-          {view === 'google' && (
+          {view === 'google' && !sb && (
             <div className="anim-fade flex flex-col gap-3">
               <div className="flex items-center gap-2 mb-1"><button onClick={() => setView('main')} className="fr grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-[var(--surface-2)]"><Icon name="chevronL" size={18} /></button><div className="flex items-center gap-2"><GoogleMark size={16} /><span className="font-display font-semibold">Hesap seç</span></div></div>
               {SAMPLE_ACCOUNTS.map((a) => (
@@ -75,16 +161,19 @@ function AuthScreen({ onAuthed }) {
 
           {view === 'email' && (
             <div className="anim-fade flex flex-col gap-3">
-              <div className="flex items-center gap-2 mb-1"><button onClick={() => setView('main')} className="fr grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-[var(--surface-2)]"><Icon name="chevronL" size={18} /></button><span className="font-display font-semibold">E-posta ile giriş</span></div>
+              <div className="flex items-center gap-2 mb-1"><button onClick={() => setView('main')} className="fr grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-[var(--surface-2)]"><Icon name="chevronL" size={18} /></button><span className="font-display font-semibold">{sb && mode === 'signup' ? 'Kaydol' : 'E-posta ile giriş'}</span></div>
               <Field label="E-posta"><Input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setErr(''); }} placeholder="ornek@mail.com" autoFocus /></Field>
               <Field label="Şifre"><Input type="password" value={pass} onChange={(e) => { setPass(e.target.value); setErr(''); }} placeholder="••••••••" onKeyDown={(e) => e.key === 'Enter' && emailLogin()} /></Field>
               {err && <div className="text-xs font-medium" style={{ color: 'var(--c-fat)' }}>{err}</div>}
-              <Button size="lg" icon="check" onClick={emailLogin} className="mt-1">Giriş yap</Button>
-              <p className="text-[11px] text-muted text-center">Hesabın yok mu? Bu e-posta ile otomatik oluşturulur.</p>
+              {info && <div className="text-xs font-medium" style={{ color: 'var(--accent-text)' }}>{info}</div>}
+              <Button size="lg" icon="check" onClick={emailLogin} disabled={busy} className="mt-1">{busy ? 'Bekle…' : (sb && mode === 'signup' ? 'Kaydol' : 'Giriş yap')}</Button>
+              {sb
+                ? <button onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setErr(''); setInfo(''); }} className="fr text-[11px] text-muted text-center hover:text-[var(--text)]">{mode === 'signup' ? 'Zaten hesabın var mı? Giriş yap' : 'Hesabın yok mu? Kaydol'}</button>
+                : <p className="text-[11px] text-muted text-center">Hesabın yok mu? Bu e-posta ile otomatik oluşturulur.</p>}
             </div>
           )}
         </Card>
-        <p className="text-[11px] text-muted mt-5 text-center max-w-xs text-balance">Devam ederek bunun bir tasarım prototipi olduğunu kabul edersin. Veriler cihazında saklanır.</p>
+        <p className="text-[11px] text-muted mt-5 text-center max-w-xs text-balance">{sb ? 'Devam ederek kullanım koşullarını kabul edersin.' : 'Devam ederek bunun bir tasarım prototipi olduğunu kabul edersin. Veriler cihazında saklanır.'}</p>
       </div>
     </div>
   );

@@ -9,8 +9,30 @@
   };
 
   const SETTINGS_KEY = 'fk.settings';
-  function getSettings() { return LS.get(SETTINGS_KEY, { baseUrl: 'http://localhost:8000', token: '', live: false }); }
+  // Build-time env (Vite): prod'da API adresi gömülür; ayarlardan override edilebilir.
+  const ENV = (typeof import.meta !== 'undefined' && import.meta.env) || {};
+  const ENV_BASE = ENV.VITE_API_BASE_URL || '';
+  const ENV_MOCK = ENV.VITE_ENABLE_MOCK === 'true';
+  function getSettings() {
+    const s = LS.get(SETTINGS_KEY, {});
+    return {
+      baseUrl: s.baseUrl || ENV_BASE || 'http://localhost:8000',
+      token: s.token || '',
+      // env API adresi varsa canlı mod varsayılan açık (VITE_ENABLE_MOCK ile kapatılır).
+      live: s.live != null ? s.live : (!!ENV_BASE && !ENV_MOCK),
+    };
+  }
   function setSettings(s) { LS.set(SETTINGS_KEY, s); }
+  // Bearer önceliği: canlı Supabase oturumu (otomatik yenilenir) > manuel ayar token'ı.
+  async function authToken() {
+    try {
+      if (window.supabase) {
+        const { data } = await window.supabase.auth.getSession();
+        if (data && data.session) return data.session.access_token;
+      }
+    } catch {}
+    return getSettings().token || '';
+  }
 
   function todayStr() { return new Date().toISOString().slice(0, 10); }
   const cap = (s) => (s ? s.charAt(0).toLocaleUpperCase('tr') + s.slice(1) : s);
@@ -629,7 +651,8 @@
   async function request(method, path, { query, body } = {}) {
     const s = getSettings();
     if (s.live && s.baseUrl) {
-      const res = await fetch(s.baseUrl.replace(/\/$/, '') + path + buildQuery(query), { method, headers: { 'Content-Type': 'application/json', ...(s.token ? { Authorization: 'Bearer ' + s.token } : {}) }, body: body ? JSON.stringify(body) : undefined });
+      const token = await authToken();
+      const res = await fetch(s.baseUrl.replace(/\/$/, '') + path + buildQuery(query), { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined });
       if (!res.ok) throw new Error('Sunucu hatası (' + res.status + ')');
       if (res.status === 204) return { ok: true };
       return res.json();

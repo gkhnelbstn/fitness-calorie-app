@@ -136,7 +136,7 @@ function MealsHub({ date, setDate, demoState, onAddMeal, onEditMeal, refreshKey,
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [user, login, logout] = useAuth();
+  const [user, login, logout, authLoading] = useAuth();
   const [route, setRoute] = useS(() => localStorage.getItem('fk.route') || 'ozet');
   const [date, setDate] = useS(API.todayStr());
   const [dark, setDark] = useS(() => { const v = localStorage.getItem('fk.dark'); return v == null ? window.matchMedia('(prefers-color-scheme: dark)').matches : v === '1'; });
@@ -157,6 +157,14 @@ function App() {
   const demoState = 'normal';
   const reloadAll = () => setRefreshKey((k) => k + 1);
 
+  // Supabase oturumu async çözülürken login ekranı parlamasın.
+  if (authLoading) {
+    return (
+      <div className="min-h-screen grid place-items-center" style={{ background: 'var(--bg)' }}>
+        <span className="grid place-items-center h-12 w-12 rounded-2xl text-white anim-fade" style={{ background: 'var(--accent)' }}><Icon name="leaf" size={26} /></span>
+      </div>
+    );
+  }
   if (!user) return <AuthScreen onAuthed={login} />;
 
   const screen = (() => {

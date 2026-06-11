@@ -244,3 +244,4 @@ services/api/data/
 # Node (apps/web Vite)
 node_modules/
 apps/web/.env.local
+.vite/
