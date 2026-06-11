@@ -10,14 +10,13 @@ from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import CurrentUser, get_current_profile, get_current_user
 from ..data import workouts as W
 from ..db import get_session
 from ..models import UserGoal, WorkoutLog
 from ..schemas.workout import WorkoutLogCreate, WorkoutLogRead
-from ..security import require_token
-from ..services.user import get_or_create_default_user
 
-router = APIRouter(prefix="/api", tags=["workouts"], dependencies=[Depends(require_token)])
+router = APIRouter(prefix="/api", tags=["workouts"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/workouts")
@@ -39,9 +38,10 @@ async def workout_plan(
     level: str | None = None,
     days_per_week: int | None = None,
     training_days: list[str] = Query(default_factory=list),
+    cu: CurrentUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     if goal is None:
         g = (
             (
@@ -75,10 +75,12 @@ def _to_read(w: WorkoutLog) -> WorkoutLogRead:
 
 @router.get("/workout-logs", response_model=list[WorkoutLogRead])
 async def list_logs(
-    date: str | None = None, session: AsyncSession = Depends(get_session)
+    date: str | None = None,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> list[WorkoutLogRead]:
     day = date or date_cls.today().isoformat()
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     rows = (
         (
             await session.execute(
@@ -97,10 +99,11 @@ async def list_logs(
 async def add_log(
     payload: WorkoutLogCreate,
     date: str | None = None,
+    cu: CurrentUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> WorkoutLogRead:
     day = date or date_cls.today().isoformat()
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     catalog = {e["slug"]: e for e in W.EXERCISES}
     ex = catalog.get(payload.template_slug)
     name_tr = ex["name_tr"] if ex else payload.template_slug
@@ -123,8 +126,12 @@ async def add_log(
 
 
 @router.delete("/workout-logs/{log_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_log(log_id: int, session: AsyncSession = Depends(get_session)) -> None:
-    user = await get_or_create_default_user(session)
+async def delete_log(
+    log_id: int,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    user = await get_current_profile(cu, session)
     result = await session.execute(
         delete(WorkoutLog).where(WorkoutLog.id == log_id, WorkoutLog.user_id == user.id)
     )

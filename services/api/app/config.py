@@ -43,6 +43,16 @@ class Settings(BaseSettings):
     # Tek kullanıcı için basit API token (Faz 0). Public'e geçişte OAuth2/JWT.
     api_token: str = "dev-local-token"
 
+    # --- Supabase Auth (çok kullanıcı, JWT) ---
+    # Boşsa JWT doğrulama devre dışı → legacy api_token akışı (dev/test).
+    supabase_jwt_secret: str = ""
+    supabase_jwt_alg: str = "HS256"  # asimetrik projede RS256/ES256 + JWKS
+    supabase_jwt_audience: str = "authenticated"
+    supabase_jwks_url: str = ""  # ör. https://<proj>.supabase.co/auth/v1/.well-known/jwks.json
+
+    # CORS: virgülle ayrılmış izinli origin listesi (prod'da Vercel domaini).
+    cors_origins: str = ""
+
     # Yüklenen yemek fotoğrafları için dizin (gitignore'da).
     upload_dir: str = "./data/photos"
 
@@ -63,6 +73,15 @@ class Settings(BaseSettings):
     @property
     def llm_enabled(self) -> bool:
         return bool(self.nvidia_api_key.strip())
+
+    @property
+    def supabase_auth_enabled(self) -> bool:
+        return bool(self.supabase_jwt_secret.strip() or self.supabase_jwks_url.strip())
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        extra = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        return ["http://localhost:5173", "http://127.0.0.1:5173", *extra]
 
 
 @lru_cache

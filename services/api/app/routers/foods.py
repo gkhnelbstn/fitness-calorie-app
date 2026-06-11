@@ -9,14 +9,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import get_current_user
 from ..data.portions import measure_grams, measures_for
 from ..db import get_session
 from ..schemas.food import FoodPortions, PortionOption
-from ..security import require_token
 from ..services.nutrition import resolve_nutrition
 from ..services.resolver import resolve_canonical
 
-router = APIRouter(prefix="/api/foods", tags=["foods"], dependencies=[Depends(require_token)])
+router = APIRouter(prefix="/api/foods", tags=["foods"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/portions", response_model=FoodPortions)

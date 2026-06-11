@@ -16,20 +16,19 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..adapters.openfoodfacts import OpenFoodFactsAdapter
+from ..auth import CurrentUser, get_current_profile, get_current_user
 from ..config import get_settings
 from ..db import get_session
 from ..models import FoodProduct, MealLog, MealLogItem, NutritionProfile
 from ..schemas.meal import BarcodeMealCreate, MealCreate, MealItem, MealRead, MealUpdate
-from ..security import require_token
 from ..services.extract import extract_items
 from ..services.intake import day_bounds
 from ..services.meal_items import build_meal_log_item as _build_item
 from ..services.meal_parser import ParsedItem
 from ..services.resolver import get_or_create_canonical, resolve_canonical
 from ..services.sources import get_or_create_source
-from ..services.user import get_or_create_default_user
 
-router = APIRouter(prefix="/api/meals", tags=["meals"], dependencies=[Depends(require_token)])
+router = APIRouter(prefix="/api/meals", tags=["meals"], dependencies=[Depends(get_current_user)])
 
 
 def _to_schema_item(it: MealLogItem) -> MealItem:
@@ -48,12 +47,14 @@ def _to_schema_item(it: MealLogItem) -> MealItem:
 
 @router.post("", response_model=MealRead, status_code=status.HTTP_201_CREATED)
 async def create_meal(
-    payload: MealCreate, session: AsyncSession = Depends(get_session)
+    payload: MealCreate,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> MealRead:
     if not payload.raw_text and not payload.items:
         raise HTTPException(status_code=422, detail="raw_text veya items dolu olmalı.")
 
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
 
     log = MealLog(user_id=user.id, meal_type=payload.meal_type, raw_text=payload.raw_text)
     session.add(log)
@@ -108,6 +109,7 @@ async def create_meal_with_photo(
     photo: UploadFile = File(...),
     raw_text: str | None = Form(default=None),
     meal_type: str | None = Form(default=None),
+    cu: CurrentUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> MealRead:
     """Yemek fotoğrafı yükle. AI/LLM tanıma YOK — kullanıcı manuel raw_text/items'la
@@ -122,7 +124,7 @@ async def create_meal_with_photo(
     content = await photo.read()
     target.write_bytes(content)
 
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     log = MealLog(
         user_id=user.id,
         meal_type=meal_type,
@@ -162,7 +164,9 @@ def _scale(value: float | None, grams: float) -> float | None:
 
 @router.post("/by-barcode", response_model=MealRead, status_code=status.HTTP_201_CREATED)
 async def create_meal_by_barcode(
-    payload: BarcodeMealCreate, session: AsyncSession = Depends(get_session)
+    payload: BarcodeMealCreate,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> MealRead:
     """Barkodu Open Food Facts'ten çek, ürün/canonical/besin profilini upsert et,
     miktar ile makro hesapla ve yemek kaydı oluştur."""
@@ -170,7 +174,7 @@ async def create_meal_by_barcode(
     if hit is None:
         raise HTTPException(status_code=404, detail="Barkod bulunamadı.")
 
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     src = await get_or_create_source(
         session,
         name="Open Food Facts",
@@ -252,9 +256,11 @@ async def create_meal_by_barcode(
 
 @router.get("", response_model=list[MealRead])
 async def list_meals(
-    date: str | None = None, session: AsyncSession = Depends(get_session)
+    date: str | None = None,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> list[MealRead]:
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     stmt = select(MealLog).where(MealLog.user_id == user.id)
     if date:
         start, end = day_bounds(date)
@@ -292,9 +298,12 @@ async def _meal_or_404(session: AsyncSession, meal_id: int, user_id: int) -> Mea
 
 @router.put("/{meal_id}", response_model=MealRead)
 async def update_meal(
-    meal_id: int, payload: MealUpdate, session: AsyncSession = Depends(get_session)
+    meal_id: int,
+    payload: MealUpdate,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
 ) -> MealRead:
-    user = await get_or_create_default_user(session)
+    user = await get_current_profile(cu, session)
     log = await _meal_or_404(session, meal_id, user.id)
 
     if payload.meal_type is not None:
@@ -346,8 +355,12 @@ async def update_meal(
 
 
 @router.delete("/{meal_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_meal(meal_id: int, session: AsyncSession = Depends(get_session)) -> None:
-    user = await get_or_create_default_user(session)
+async def delete_meal(
+    meal_id: int,
+    cu: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    user = await get_current_profile(cu, session)
     result = await session.execute(
         delete(MealLog).where(MealLog.id == meal_id, MealLog.user_id == user.id)
     )
