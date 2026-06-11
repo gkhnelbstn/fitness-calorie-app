@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     supabase_jwt_audience: str = "authenticated"
     supabase_jwks_url: str = ""  # ör. https://<proj>.supabase.co/auth/v1/.well-known/jwks.json
 
+    # --- Supabase Storage (öğün fotoğrafları; Fly diski ephemeral) ---
+    # service_key boşsa yerel upload_dir kullanılır (dev/test).
+    supabase_project_url: str = ""  # https://<proj>.supabase.co
+    supabase_service_key: str = ""  # service_role key — YALNIZ backend secret'ı
+    supabase_storage_bucket: str = "meal-photos"
+
     # CORS: virgülle ayrılmış izinli origin listesi (prod'da Vercel domaini).
     cors_origins: str = ""
 

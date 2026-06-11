@@ -6,7 +6,6 @@ GET:  tarihe göre kullanıcının yemek kayıtları.
 
 from __future__ import annotations
 
-import uuid
 from pathlib import Path
 from typing import Any, cast
 
@@ -17,7 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..adapters.openfoodfacts import OpenFoodFactsAdapter
 from ..auth import CurrentUser, get_current_profile, get_current_user
-from ..config import get_settings
 from ..db import get_session
 from ..models import FoodProduct, MealLog, MealLogItem, NutritionProfile
 from ..schemas.meal import BarcodeMealCreate, MealCreate, MealItem, MealRead, MealUpdate
@@ -27,6 +25,7 @@ from ..services.meal_items import build_meal_log_item as _build_item
 from ..services.meal_parser import ParsedItem
 from ..services.resolver import get_or_create_canonical, resolve_canonical
 from ..services.sources import get_or_create_source
+from ..services.storage import save_photo
 
 router = APIRouter(prefix="/api/meals", tags=["meals"], dependencies=[Depends(get_current_user)])
 
@@ -113,23 +112,18 @@ async def create_meal_with_photo(
     session: AsyncSession = Depends(get_session),
 ) -> MealRead:
     """Yemek fotoğrafı yükle. AI/LLM tanıma YOK — kullanıcı manuel raw_text/items'la
-    düzeltir. Dosya `upload_dir`'e UUID adıyla saklanır; meal_log.photo_path bağlanır.
-    raw_text varsa Faz 1 akışıyla items çıkarılır."""
-    settings = get_settings()
-    upload_dir = Path(settings.upload_dir)
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    düzeltir. Prod'da Supabase Storage'a, dev'de `upload_dir`'e kaydedilir;
+    meal_log.photo_path bağlanır. raw_text varsa Faz 1 akışıyla items çıkarılır."""
     suffix = Path(photo.filename or "").suffix.lower() or ".bin"
-    fname = f"{uuid.uuid4().hex}{suffix}"
-    target = upload_dir / fname
     content = await photo.read()
-    target.write_bytes(content)
+    photo_path = await save_photo(content, suffix)
 
     user = await get_current_profile(cu, session)
     log = MealLog(
         user_id=user.id,
         meal_type=meal_type,
         raw_text=raw_text,
-        photo_path=f"/uploads/{fname}",  # StaticFiles URL (frontend <img> ile yüklenir)
+        photo_path=photo_path,  # /uploads/... (dev) veya public Storage URL (prod)
     )
     session.add(log)
     await session.flush()
