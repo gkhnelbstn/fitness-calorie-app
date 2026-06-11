@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* index.html'deki eski inline <style> bloğu — CSS değişkenleri runtime'da
+   applyTheme() (app.jsx) tarafından override edilir, burada kalmalı. */
+
+:root {
+  /* Accent (yeşil) */
+  --accent: #16a34a;
+  --accent-soft: #dcfce7;
+  --accent-text: #166534;
+
+  /* Makro renkleri */
+  --c-kcal: #16a34a;
+  --c-prot: #4f6df5;
+  --c-carb: #f59e0b;
+  --c-fat: #e0568b;
+
+  /* Yüzeyler — hafif sıcak/yeşilimsi beyaz */
+  --bg: #f6f8f6;
+  --surface: #ffffff;
+  --surface-2: #f1f5f2;
+  --border: #e7ebe8;
+  --text: #18211c;
+  --text-muted: #5d6b62;
+
+  color-scheme: light;
+}
+.dark {
+  --accent: #34d27b;
+  --accent-soft: #14361f;
+  --accent-text: #6ee7a3;
+
+  --c-kcal: #34d27b;
+  --c-prot: #7d92ff;
+  --c-carb: #fbbf24;
+  --c-fat: #f178a8;
+
+  --bg: #0e1411;
+  --surface: #161e19;
+  --surface-2: #1d2722;
+  --border: #283530;
+  --text: #e7ede9;
+  --text-muted: #93a39a;
+
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Manrope', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.font-display {
+  font-family: 'Poppins', system-ui, sans-serif;
+}
+
+/* tabular numbers for sayılar */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Surface helpers driven by CSS vars (Tailwind dark: utilities + vars) */
+.surface {
+  background: var(--surface);
+}
+.surface-2 {
+  background: var(--surface-2);
+}
+.bordered {
+  border: 1px solid var(--border);
+}
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+  background-clip: padding-box;
+}
+
+/* fade/slide animations */
+@keyframes om-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes om-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes om-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes om-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+.anim-fade {
+  animation: om-fade-in 0.25s ease both;
+}
+.anim-pop {
+  animation: om-pop-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-sheet {
+  animation: om-sheet-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.skel {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 37%, var(--surface-2) 63%);
+  background-size: 800px 100%;
+  animation: om-shimmer 1.3s infinite linear;
+  border-radius: 8px;
+}
+
+/* focus ring */
+.fr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}

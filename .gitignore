@@ -240,3 +240,7 @@ services/api/data/
 **/.flutter-plugins-dependencies
 **/*.iml
 **/build/
+
+# Node (apps/web Vite)
+node_modules/
+apps/web/.env.local
