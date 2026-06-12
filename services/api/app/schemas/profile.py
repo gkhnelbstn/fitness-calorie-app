@@ -51,3 +51,6 @@ class GoalPlanUpdate(BaseModel):
     pace: float | None = None
     days_per_week: int | None = None
     training_days: list[str] | None = None
+    # Antrenman ekranı tercihleri — cihazlar arası kalıcı olsun diye sunucuda.
+    level: str | None = None  # beginner | intermediate | expert
+    goal: str | None = None  # kilo_ver | koru | kas_yap (boş = aktif hedefi izle)
