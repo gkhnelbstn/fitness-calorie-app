@@ -63,3 +63,12 @@ async def test_goal_plan_put_then_partial_merge(client, auth) -> None:
 
     g = await client.get("/api/goal/plan", headers=auth)
     assert g.json()["weeks"] == 16
+
+
+async def test_goal_plan_workout_prefs_persist(client, auth) -> None:
+    """Antrenman ekranı tercihleri (level/goal) plana yazılır ve geri okunur."""
+    await client.put("/api/goal/plan", headers=auth, json={"level": "expert"})
+    await client.put("/api/goal/plan", headers=auth, json={"goal": "kas_yap"})
+    body = (await client.get("/api/goal/plan", headers=auth)).json()
+    assert body["level"] == "expert"
+    assert body["goal"] == "kas_yap"  # ayrı PUT'lar birbirini ezmedi

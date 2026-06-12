@@ -180,6 +180,7 @@ function WorkoutScreen({ date, setDate, demoState, toast }) {
   const [goal, setGoal] = useStateW(() => localStorage.getItem('fk.wgoal') || '');
   const [level, setLevel] = useStateW(() => localStorage.getItem('fk.wlevel') || 'intermediate');
   const [trainDays, setTrainDays] = useStateW(null);
+  const [prefsSeeded, setPrefsSeeded] = useStateW(false);
   const [muscle, setMuscle] = useStateW('');
   const [libLevel, setLibLevel] = useStateW('');
   const [q, setQ] = useStateW('');
@@ -188,7 +189,16 @@ function WorkoutScreen({ date, setDate, demoState, toast }) {
 
   const goalR = useResource(() => API.goal().catch(() => ({ goal_type: 'koru' })), []);
   const planPrefs = useResource(() => API.getPlan().catch(() => null), []);
-  React.useEffect(() => { if (trainDays == null) setTrainDays((planPrefs.data && planPrefs.data.training_days) || ['Pzt', 'Sal', 'Per', 'Cmt']); }, [planPrefs.data]);
+  // Kayıtlı tercihleri YALNIZ yükleme bittikten sonra uygula — önce default
+  // atanırsa sunucudaki seçim yok sayılır (yarış: "tercihler kaydolmuyor" bug'ı).
+  React.useEffect(() => {
+    if (planPrefs.loading || prefsSeeded) return;
+    const p = planPrefs.data || {};
+    setTrainDays(p.training_days || ['Pzt', 'Sal', 'Per', 'Cmt']);
+    if (p.level) setLevel(p.level);
+    if (p.goal != null) setGoal(p.goal);
+    setPrefsSeeded(true);
+  }, [planPrefs.loading]);
 
   const effGoal = goal || (goalR.data && goalR.data.goal_type) || 'koru';
   const td = trainDays || ['Pzt', 'Sal', 'Per', 'Cmt'];
@@ -197,14 +207,15 @@ function WorkoutScreen({ date, setDate, demoState, toast }) {
   const exs = useResource(() => API.workouts({ muscle, level: libLevel, q }), [muscle, libLevel, q]);
   const logs = useResource(() => API.workoutLogs(date), [date, logKey]);
 
-  React.useEffect(() => { if (goal) localStorage.setItem('fk.wgoal', goal); }, [goal]);
-  React.useEffect(() => { localStorage.setItem('fk.wlevel', level); }, [level]);
+  // Tercihler hem localStorage (anında) hem sunucu planına (cihazlar arası) yazılır.
+  React.useEffect(() => { localStorage.setItem('fk.wgoal', goal); if (prefsSeeded) API.savePlan({ goal }).catch(() => {}); }, [goal]);
+  React.useEffect(() => { localStorage.setItem('fk.wlevel', level); if (prefsSeeded) API.savePlan({ level }).catch(() => {}); }, [level]);
 
   const toggleDay = (d) => {
     let next = td.includes(d) ? td.filter((x) => x !== d) : [...td, d];
     if (next.length < 1) return; if (next.length > 6) return;
     next = WEEK.filter((w) => next.includes(w));
-    setTrainDays(next); API.savePlan({ training_days: next, days_per_week: next.length });
+    setTrainDays(next); API.savePlan({ training_days: next, days_per_week: next.length }).catch(() => {});
   };
 
   const loading = demoState === 'loading' || plan.loading || goalR.loading || trainDays == null;
