@@ -1,0 +1,43 @@
+# Render Blueprint — FastAPI backend (free, kartsız).
+# Kurulum: Render Dashboard → New → Blueprint → repo'yu bağla → render.yaml okunur.
+# sync:false env'ler dashboard'da elle girilir (gizli değerler repoya girmez).
+#
+# DB: Supabase doğrudan bağlantı IPv6-only; Render IPv4 → **Session pooler** URI kullan
+#     (postgresql+asyncpg://postgres.<ref>:<sifre>@aws-0-<region>.pooler.supabase.com:5432/postgres).
+# Start komutu: migrate + idempotent seed + uvicorn (Render free'de pre-deploy yok).
+services:
+  - type: web
+    name: fitkoc-api
+    runtime: docker
+    rootDir: services/api
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    dockerCommand: >-
+      sh -c "uv run --no-dev alembic upgrade head &&
+      uv run --no-dev python -m app.seeds &&
+      uv run --no-dev uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: ENVIRONMENT
+        value: prod
+      - key: DEBUG
+        value: "false"
+      - key: SUPABASE_JWT_ALG
+        value: ES256
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      - key: SUPABASE_STORAGE_BUCKET
+        value: meal-photos
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_JWKS_URL
+        sync: false
+      - key: SUPABASE_PROJECT_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: API_TOKEN
+        sync: false
