@@ -11,7 +11,7 @@ from alembic import context
 # Modelleri Base.metadata'ya kaydet.
 from app import models  # noqa: F401
 from app.config import get_settings
-from app.db import Base
+from app.db import Base, _postgres_requires_ssl
 
 config = context.config
 
@@ -24,11 +24,11 @@ target_metadata = Base.metadata
 def _sync_url() -> str:
     """Async sürücüyü migration için sync sürücüye çevir.
 
-    Postgres'te (psycopg) Supabase SSL zorunlu → sslmode=require ekle.
+    Supabase Postgres'te SSL zorunlu; lokal CI Postgres SSL desteklemez.
     """
     url = get_settings().database_url
     url = url.replace("+aiosqlite", "").replace("+asyncpg", "+psycopg")
-    if url.startswith("postgresql") and "sslmode=" not in url:
+    if _postgres_requires_ssl(url) and "sslmode=" not in url:
         url += ("&" if "?" in url else "?") + "sslmode=require"
     return url
 
