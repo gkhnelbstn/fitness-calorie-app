@@ -335,9 +335,25 @@ window.GoalWizardModal = GoalWizardModal;
 
 // ---------------- AYARLAR ----------------
 function SettingsModal({ open, onClose, toast, onChanged }) {
+  // Prod (Supabase + gömülü API adresi): bağlantı sabittir — URL/token/mod
+  // kullanıcıya gösterilmez (kafa karıştırır + yanlışlıkla bozar).
+  const managed = !!window.supabase;
   const [s, setS] = useStateMo(API.getSettings());
   useEffMo(() => { if (open) setS(API.getSettings()); }, [open]);
   const save = () => { API.setSettings(s); toast(s.live ? 'Canlı backend açık' : 'Mock veri modu'); onChanged && onChanged(); onClose(); };
+  if (managed) {
+    return (
+      <Modal open={open} onClose={onClose} title="Ayarlar" size="md" footer={<Button variant="ghost" onClick={onClose}>Kapat</Button>}>
+        <div className="flex flex-col gap-4 pb-2">
+          <Card className="p-4 flex items-center gap-3" style={{ background: 'var(--surface-2)' }}>
+            <span className="grid place-items-center h-10 w-10 rounded-xl shrink-0" style={{ background: 'var(--accent-soft)', color: 'var(--accent-text)' }}><Icon name="leaf" size={18} /></span>
+            <div className="flex-1 min-w-0"><div className="font-semibold text-sm">Hesabına bağlı</div><div className="text-xs text-muted">Verilerin sunucuda güvenle saklanıyor. Tema ve görünüm ayarları sağ alttaki panelden değiştirilebilir.</div></div>
+          </Card>
+          <p className="text-xs text-muted">İlk açılışta sunucu uyku modundan uyanırken kısa bir gecikme (~1 dk) olabilir; ekranlardaki "Tekrar dene" ile yenileyebilirsin.</p>
+        </div>
+      </Modal>
+    );
+  }
   return (
     <Modal open={open} onClose={onClose} title="Ayarlar" size="md" footer={<><Button variant="ghost" onClick={onClose}>Kapat</Button><Button icon="check" onClick={save}>Kaydet</Button></>}>
       <div className="flex flex-col gap-4 pb-2">

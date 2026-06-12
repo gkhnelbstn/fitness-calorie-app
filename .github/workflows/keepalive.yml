@@ -1,0 +1,26 @@
+name: Keepalive
+
+# Render free 15 dk hareketsizlikte uyur (ilk istek ~50 sn cold start);
+# Supabase free ~7 gün hareketsizlikte duraklar. /health hem servisi uyandırır
+# hem SELECT 1 ile DB'ye dokunur → ikisi de aktif kalır.
+# Not: GitHub scheduled cron'lar dakikası dakikasına garanti değildir (gecikebilir).
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API health (DB dahil)
+        run: |
+          code=$(curl -s -o /tmp/h.json -w "%{http_code}" --max-time 90 https://fitkoc-api.onrender.com/health)
+          cat /tmp/h.json || true
+          echo
+          if [ "$code" != "200" ]; then
+            echo "Health $code döndü"; exit 1
+          fi

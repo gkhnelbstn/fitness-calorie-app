@@ -15,11 +15,15 @@
   const ENV_MOCK = ENV.VITE_ENABLE_MOCK === 'true';
   function getSettings() {
     const s = LS.get(SETTINGS_KEY, {});
+    // Prod (env'de API adresi gömülü): localStorage override'ları YOK SAYILIR —
+    // eski/yanlış kayıtlı baseUrl/token tüm istekleri kırabilir.
+    if (ENV_BASE && !ENV_MOCK) {
+      return { baseUrl: ENV_BASE, token: '', live: true };
+    }
     return {
       baseUrl: s.baseUrl || ENV_BASE || 'http://localhost:8000',
       token: s.token || '',
-      // env API adresi varsa canlı mod varsayılan açık (VITE_ENABLE_MOCK ile kapatılır).
-      live: s.live != null ? s.live : (!!ENV_BASE && !ENV_MOCK),
+      live: s.live != null ? s.live : false,
     };
   }
   function setSettings(s) { LS.set(SETTINGS_KEY, s); }
