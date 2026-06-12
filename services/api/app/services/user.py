@@ -32,7 +32,11 @@ async def get_or_create_user_by_auth(
     if user is not None:
         return user
 
-    name = (email or "").split("@")[0] or "Kullanıcı"
+    # Anonim (misafir) kullanıcıların email'i boş string gelir; "" benzersizlik
+    # kısıtını ihlal eder (ikinci misafir → 500) ve yanlış hesaba bağlanmaya yol
+    # açar. Boş email'i NULL'a indir: NULL'lar unique kısıtını ihlal etmez.
+    email = email or None
+    name = (email or "").split("@")[0] or "Misafir"
     user = UserProfile(name=name, email=email, supabase_uid=sub, locale="tr")
     try:
         # SAVEPOINT: çakışmada yalnız bu insert geri alınır, request transaction'ı yaşar.

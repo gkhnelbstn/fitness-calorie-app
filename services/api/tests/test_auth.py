@@ -130,6 +130,28 @@ async def test_auth_links_existing_email_account(session) -> None:
     assert linked.supabase_uid == sub
 
 
+async def test_anonymous_users_empty_email_no_collision(session) -> None:
+    """Misafir (anon) kullanıcıların email'i boş string gelir; iki misafir
+    UNIQUE(email) çakışması YAŞAMAMALI (boş → NULL) ve ayrı hesap olmalı."""
+    a = await get_or_create_user_by_auth(session, "anon-aaaa", "")
+    b = await get_or_create_user_by_auth(session, "anon-bbbb", "")
+    assert a.id != b.id
+    assert a.email is None and b.email is None
+    # Aynı sub tekrar → aynı kullanıcı (yeni kayıt açılmaz).
+    again = await get_or_create_user_by_auth(session, "anon-aaaa", "")
+    assert again.id == a.id
+
+
+async def test_anonymous_user_isolation_http(client, supabase_env) -> None:
+    """İki ayrı misafir token'ı (email'siz) → ayrı veri, summary 200 (500 değil)."""
+    ha = {"Authorization": f"Bearer {_mint('anon1-0000-0000-0000-000000000001', email=None)}"}
+    hb = {"Authorization": f"Bearer {_mint('anon2-0000-0000-0000-000000000002', email=None)}"}
+    ra = await client.get("/api/summary?date=2026-06-13", headers=ha)
+    rb = await client.get("/api/summary?date=2026-06-13", headers=hb)
+    assert ra.status_code == 200
+    assert rb.status_code == 200
+
+
 # --------------------------------------------------------------------------- #
 # HTTP akışı: kullanıcı oluşturma + izolasyon
 # --------------------------------------------------------------------------- #
