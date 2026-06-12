@@ -35,7 +35,20 @@ def enable_sqlite_fk(async_engine: AsyncEngine) -> None:
             cur.close()
 
 
-engine = create_async_engine(settings.database_url, echo=settings.debug, future=True)
+def _engine_kwargs(url: str) -> dict[str, Any]:
+    """Postgres (asyncpg) için Supabase SSL.
+
+    Supabase SSL zorunlu kılar; asyncpg `ssl` connect-arg ister (URL'de sslmode
+    asyncpg'de çalışmaz). Session pooler kullanılır → prepared statement güvenli.
+    """
+    if url.startswith("postgresql+asyncpg"):
+        return {"connect_args": {"ssl": "require"}, "pool_pre_ping": True}
+    return {}
+
+
+engine = create_async_engine(
+    settings.database_url, echo=settings.debug, future=True, **_engine_kwargs(settings.database_url)
+)
 if engine.dialect.name == "sqlite":
     enable_sqlite_fk(engine)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)

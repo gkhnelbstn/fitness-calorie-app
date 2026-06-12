@@ -22,9 +22,15 @@ target_metadata = Base.metadata
 
 
 def _sync_url() -> str:
-    """Async sürücüyü migration için sync sürücüye çevir."""
+    """Async sürücüyü migration için sync sürücüye çevir.
+
+    Postgres'te (psycopg) Supabase SSL zorunlu → sslmode=require ekle.
+    """
     url = get_settings().database_url
-    return url.replace("+aiosqlite", "").replace("+asyncpg", "+psycopg")
+    url = url.replace("+aiosqlite", "").replace("+asyncpg", "+psycopg")
+    if url.startswith("postgresql") and "sslmode=" not in url:
+        url += ("&" if "?" in url else "?") + "sslmode=require"
+    return url
 
 
 config.set_main_option("sqlalchemy.url", _sync_url())
